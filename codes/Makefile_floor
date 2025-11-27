@@ -1,0 +1,31 @@
+# Makefile for Modular Aincrad Floor Project
+
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99 -Wno-deprecated-declarations -Isrc
+TARGET = aincrad_floor
+
+# Source files
+SRCS = src/main.c \
+       src/core/window.c src/core/input.c src/core/camera.c \
+       src/graphics/shader.c src/graphics/texture.c src/graphics/mesh.c \
+       src/utils/math_utils.c src/utils/file_utils.c
+
+# Detect OS
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S), Darwin)
+	# Mac OS
+	CFLAGS += -I/opt/homebrew/include
+	LIBS = -L/opt/homebrew/lib -framework OpenGL -framework Cocoa -framework IOKit -lglfw
+else
+	# Linux / Other
+	LIBS = -lGL -lglfw -lm -ldl
+endif
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LIBS)
+
+clean:
+	rm -f $(TARGET)

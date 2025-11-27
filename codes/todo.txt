@@ -1,0 +1,2 @@
+1. Now the color of sky is too simple, so I want to make it more realistic by implement sky dome or sky box.
+
