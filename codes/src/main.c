@@ -26,11 +26,17 @@ int main() {
   // 4. Load Resources
   GLuint shader = Shader_Create("shaders/floor.vert", "shaders/floor.frag");
   GLuint normalMap = Texture_CreateProceduralNormalMap(512, 512);
+  GLuint asphaltNormalMap = Texture_CreateNoiseNormalMap(512, 512);
 
   // Create Cube Mesh for pathways
   // Original size 100x100. Split into two 100x40 sections with 20 gap.
   // Height 2.0f.
-  Mesh floorMesh = Mesh_CreateCube(100.0f, 2.0f, 40.0f);
+  // Modified: Width 6.0f (Unified)
+  Mesh floorMesh = Mesh_CreateCube(6.0f, 2.0f, 40.0f);
+
+  // Create Road Mesh (Asphalt)
+  // Width 3.0f (Halved), Height 2.0f, Depth 40.0f
+  Mesh roadMesh = Mesh_CreateCube(3.0f, 2.0f, 40.0f);
 
   // 5. Lighting Config
   vec3 sunDir = {0.5f, -0.2f, 0.5f};
@@ -48,6 +54,7 @@ int main() {
   float deltaTime = 0.0f;
   float lastFrame = 0.0f;
 
+  // while the window is open
   while (!glfwWindowShouldClose(window)) {
     // Time
     float currentFrame = (float)glfwGetTime();
@@ -100,6 +107,9 @@ int main() {
     model1.m[13] = -1.0f; // Y = -1 (Top at 0)
     model1.m[14] = 22.5f; // Z = 22.5
     Shader_SetMat4(shader, "model", model1.m);
+    Shader_SetVec3(shader, "objectColor", 0.4f, 0.4f, 0.45f); // Stone Grey
+    Shader_SetFloat(shader, "shininess", 32.0f);
+    Shader_SetFloat(shader, "specularIntensity", 0.2f);
     Mesh_Draw(&floorMesh);
 
     // Draw Pathway 2 (Far) - Z = -22.5
@@ -107,7 +117,51 @@ int main() {
     model2.m[13] = -1.0f;  // Y = -1
     model2.m[14] = -22.5f; // Z = -22.5
     Shader_SetMat4(shader, "model", model2.m);
+    Shader_SetVec3(shader, "objectColor", 0.4f, 0.4f, 0.45f); // Stone Grey
+    // Shininess and Specular Intensity already set for floor
     Mesh_Draw(&floorMesh);
+
+    // --- Draw Asphalt Roads ---
+    // Darker color for asphalt
+    Shader_SetVec3(shader, "objectColor", 0.2f, 0.2f, 0.22f);
+    // Rougher surface for asphalt
+    Shader_SetFloat(shader, "shininess", 10.0f);
+    Shader_SetFloat(shader, "specularIntensity", 0.1f);
+
+    // Bind Asphalt Normal Map
+    glBindTexture(GL_TEXTURE_2D, asphaltNormalMap);
+
+    // Left Road (Near)
+    mat4 modelRoad1 = identity();
+    modelRoad1.m[12] = -4.5f; // X = -4.5 (Center -3 - 1.5)
+    modelRoad1.m[13] = -1.0f;
+    modelRoad1.m[14] = 22.5f;
+    Shader_SetMat4(shader, "model", modelRoad1.m);
+    Mesh_Draw(&roadMesh);
+
+    // Right Road (Near)
+    mat4 modelRoad2 = identity();
+    modelRoad2.m[12] = 4.5f; // X = 4.5 (Center +3 + 1.5)
+    modelRoad2.m[13] = -1.0f;
+    modelRoad2.m[14] = 22.5f;
+    Shader_SetMat4(shader, "model", modelRoad2.m);
+    Mesh_Draw(&roadMesh);
+
+    // Left Road (Far)
+    mat4 modelRoad3 = identity();
+    modelRoad3.m[12] = -4.5f;
+    modelRoad3.m[13] = -1.0f;
+    modelRoad3.m[14] = -22.5f;
+    Shader_SetMat4(shader, "model", modelRoad3.m);
+    Mesh_Draw(&roadMesh);
+
+    // Right Road (Far)
+    mat4 modelRoad4 = identity();
+    modelRoad4.m[12] = 4.5f;
+    modelRoad4.m[13] = -1.0f;
+    modelRoad4.m[14] = -22.5f;
+    Shader_SetMat4(shader, "model", modelRoad4.m);
+    Mesh_Draw(&roadMesh);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

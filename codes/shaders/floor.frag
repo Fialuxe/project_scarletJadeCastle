@@ -11,6 +11,9 @@ uniform vec3 viewPos;
 uniform vec3 sunDir;
 uniform vec3 sunColor;
 uniform vec3 ambientColor;
+uniform vec3 objectColor;
+uniform float shininess;
+uniform float specularIntensity;
 
 void main()
 {
@@ -29,14 +32,14 @@ void main()
 
     // Specular (Matte finish: Lower intensity, softer highlight)
     vec3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-    vec3 specular = spec * sunColor * 0.2; // Significantly reduced intensity for matte look
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+    vec3 specular = spec * sunColor * specularIntensity;
 
     // Ambient
     vec3 ambient = ambientColor;
 
-    // Base Color (Stone Grey)
-    vec3 objectColor = vec3(0.4, 0.4, 0.45);
+    // Base Color
+    // vec3 objectColor = vec3(0.4, 0.4, 0.45); // Moved to uniform
 
     // Combine
     vec3 result = (ambient + diffuse + specular) * objectColor;
