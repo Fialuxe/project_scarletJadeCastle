@@ -179,6 +179,11 @@ int main() {
   // Load Flower Texture
   GLuint flowerTexture = Texture_Load("../materials/flower/shaded.png");
 
+  // Load White Flower Model
+  Mesh flowerWMesh = Mesh_LoadModel("../materials/flower_w/flower_w_pbr.fbx");
+  // Load White Flower Texture
+  GLuint flowerWTexture = Texture_Load("../materials/flower_w/shaded.png");
+
   // Load Skybox Texture
   GLuint skyboxTexture = Texture_Load(
       "../materials/sky/Gemini_Generated_Image_ikqh7oikqh7oikqh.png");
@@ -256,7 +261,7 @@ int main() {
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
       model = mat4_multiply(rotate_x(90.0f), model);
-      ADD_FLOWER(model);
+      ADD_FLOWER(model); // random color
     }
   }
 
@@ -271,7 +276,7 @@ int main() {
     model = mat4_multiply(translate(centerXs[i], FLOWER_Y_OFFSET, centerZs[i]),
                           model);
     model = mat4_multiply(
-        scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
+        scale(FLOWER_SCALE * 5, 1.5 * FLOWER_SCALE, 5 * FLOWER_SCALE), model);
     model = mat4_multiply(rotate_y(90.0f), model);
     model = mat4_multiply(rotate_x(90.0f), model);
     storeMatrix(flowerWMatrices, fwIdx++, model);
@@ -663,8 +668,11 @@ int main() {
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, flowerTexture);
+    Mesh_DrawInstanced(&flowerMesh, fIdx);
 
-    Mesh_DrawInstanced(&flowerMesh, totalFlowers);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, flowerWTexture);
+    Mesh_DrawInstanced(&flowerWMesh, fwIdx);
 
     // Reset Active Texture to 0
     glActiveTexture(GL_TEXTURE0);

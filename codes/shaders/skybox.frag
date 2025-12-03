@@ -1,4 +1,12 @@
 #version 330 core
+// This shader is used to render the skybox.
+// Algorithm: Spherical Mapping
+// Description:
+// - Spherical mapping is a method of mapping a 3D environment to a 2D texture.
+// - The environment is mapped to a sphere, and the sphere is mapped to a cube.
+// - The cube is then mapped to a 2D texture.
+
+
 out vec4 FragColor;
 
 in vec3 TexCoords;

@@ -1,13 +1,11 @@
-# This fragment shader is used to render the floor.
-# Algorithm: Blinn-Phong
-# Description: 
-# - Blinn-Phong is a method of calculating lighting.
-# - It is a variation of Phong lighting.
-# - It is faster than Phong lighting.
-# - It is used to calculate the lighting of the floor.
-
 #version 330 core
-
+// This fragment shader is used to render the floor.
+// Algorithm: Blinn-Phong
+// Description: 
+// - Blinn-Phong is a method of calculating lighting.
+// - It is a variation of Phong lighting.
+// - It is faster than Phong lighting.
+// - It is used to calculate the lighting of the floor.
 out vec4 FragColor;
 
 in vec3 FragPos;
