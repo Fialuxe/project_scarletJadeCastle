@@ -14,13 +14,22 @@ uniform vec3 ambientColor;
 uniform vec3 objectColor;
 uniform float shininess;
 uniform float specularIntensity;
+uniform sampler2D diffuseMap;
+uniform int useDiffuseMap;
+uniform int useNormalMap;
 
 void main()
 {
-    // 1. Obtain Normal from Normal Map
-    vec3 normal = texture(normalMap, TexCoord).rgb;
-    normal = normal * 2.0 - 1.0;   
-    normal = normalize(TBN * normal); 
+    // 1. Obtain Normal
+    vec3 normal;
+    if (useNormalMap == 1) {
+        normal = texture(normalMap, TexCoord).rgb;
+        normal = normal * 2.0 - 1.0;   
+        normal = normalize(TBN * normal); 
+    } else {
+        // Use vertex normal (Z axis in TBN is the normal)
+        normal = normalize(TBN[2]);
+    } 
 
     // 2. Lighting (Blinn-Phong)
     vec3 viewDir = normalize(viewPos - FragPos);
@@ -39,13 +48,16 @@ void main()
     vec3 ambient = ambientColor;
 
     // Base Color
-    // vec3 objectColor = vec3(0.4, 0.4, 0.45); // Moved to uniform
+    vec3 baseColor = objectColor;
+    if (useDiffuseMap == 1) {
+        baseColor = texture(diffuseMap, TexCoord).rgb;
+    }
 
     // Combine
-    vec3 result = (ambient + diffuse + specular) * objectColor;
+    vec3 result = (ambient + diffuse + specular) * baseColor;
     
     // Tone Mapping (Reinhard) - Prevents blown out highlights
-    result = result / (result + vec3(1.0));
+    // result = result / (result + vec3(1.0));
     
     // Gamma Correction - Standard monitor output
     result = pow(result, vec3(1.0 / 2.2));

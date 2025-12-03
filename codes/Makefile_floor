@@ -15,8 +15,8 @@ UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S), Darwin)
 	# Mac OS
-	CFLAGS += -I/opt/homebrew/include
-	LIBS = -L/opt/homebrew/lib -framework OpenGL -framework Cocoa -framework IOKit -lglfw
+	CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/Cellar/assimp/6.0.2/include
+	LIBS = -L/opt/homebrew/lib -L/opt/homebrew/Cellar/assimp/6.0.2/lib -framework OpenGL -framework Cocoa -framework IOKit -lglfw -lassimp
 else
 	# Linux / Other
 	LIBS = -lGL -lglfw -lm -ldl

@@ -26,5 +26,10 @@ float dot(vec3 a, vec3 b);
 mat4 identity();
 mat4 perspective(float fov, float aspect, float near, float far);
 mat4 lookAt(vec3 eye, vec3 center, vec3 up);
+mat4 mat4_multiply(mat4 a, mat4 b);
+mat4 translate(float x, float y, float z);
+mat4 scale(float x, float y, float z);
+mat4 rotate_x(float angle);
+mat4 rotate_y(float angle);
 
 #endif

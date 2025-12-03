@@ -1,6 +1,8 @@
 #include "texture.h"
 #include <math.h>
 #include <stdlib.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "../utils/stb_image.h"
 
 // Helper struct for internal vec3 use
 typedef struct {
@@ -108,4 +110,108 @@ GLuint Texture_CreateNoiseNormalMap(int width, int height) {
 
   free(texData);
   return textureID;
+}
+
+// create grass texture data (procedural noise)
+void generateGrassTextureData(unsigned char *data, int width, int height) {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int idx = (y * width + x) * 3;
+
+      // Base green color
+      float r = 0.1f;
+      float g = 0.5f;
+      float b = 0.1f;
+
+      // Add noise
+      float noise = (rand() % 100) / 100.0f; // 0.0 to 1.0
+
+      // Vary green intensity
+      g += (noise - 0.5f) * 0.4f; // +/- 0.2 variation
+
+      // Add some brown/yellow for realism
+      r += (noise - 0.5f) * 0.1f;
+      b += (noise - 0.5f) * 0.05f;
+
+      // Clamp
+      if (r < 0.0f)
+        r = 0.0f;
+      if (r > 1.0f)
+        r = 1.0f;
+      if (g < 0.0f)
+        g = 0.0f;
+      if (g > 1.0f)
+        g = 1.0f;
+      if (b < 0.0f)
+        b = 0.0f;
+      if (b > 1.0f)
+        b = 1.0f;
+
+      data[idx] = (unsigned char)(r * 255);
+      data[idx + 1] = (unsigned char)(g * 255);
+      data[idx + 2] = (unsigned char)(b * 255);
+    }
+  }
+}
+
+GLuint Texture_CreateGrassTexture(int width, int height) {
+  unsigned char *texData = (unsigned char *)malloc(width * height * 3);
+  generateGrassTextureData(texData, width, height);
+
+  GLuint textureID;
+  glGenTextures(1, &textureID);
+  glBindTexture(GL_TEXTURE_2D, textureID);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+               GL_UNSIGNED_BYTE, texData);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  // Set texture filtering to linear for smoother look
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  free(texData);
+  return textureID;
+}
+
+GLuint Texture_Load(const char *path) {
+  int width, height, nrChannels;
+  // Flip vertically because OpenGL expects 0.0 at bottom
+  // User reported texture is wrong, likely double flipped or not needed for
+  // this model
+  stbi_set_flip_vertically_on_load(0);
+  unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
+  if (data) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    GLenum format;
+    if (nrChannels == 1)
+      format = GL_RED;
+    else if (nrChannels == 3)
+      format = GL_RGB;
+    else if (nrChannels == 4)
+      format = GL_RGBA;
+    else
+      format = GL_RGB;
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+                 GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+    return textureID;
+  } else {
+    printf("Texture failed to load at path: %s\n", path);
+    return 0;
+  }
 }

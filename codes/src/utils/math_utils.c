@@ -68,3 +68,56 @@ mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
   res.m[14] = dot(f, eye);
   return res;
 }
+
+mat4 mat4_multiply(mat4 a, mat4 b) {
+  mat4 res;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      res.m[i * 4 + j] = 0.0f;
+      for (int k = 0; k < 4; k++) {
+        res.m[i * 4 + j] += a.m[i * 4 + k] * b.m[k * 4 + j];
+      }
+    }
+  }
+  return res;
+}
+
+mat4 translate(float x, float y, float z) {
+  mat4 res = identity();
+  res.m[12] = x;
+  res.m[13] = y;
+  res.m[14] = z;
+  return res;
+}
+
+mat4 scale(float x, float y, float z) {
+  mat4 res = identity();
+  res.m[0] = x;
+  res.m[5] = y;
+  res.m[10] = z;
+  return res;
+}
+
+mat4 rotate_y(float angle) {
+  mat4 res = identity();
+  float rad = angle * M_PI / 180.0f;
+  float c = cosf(rad);
+  float s = sinf(rad);
+  res.m[0] = c;
+  res.m[2] = -s;
+  res.m[8] = s;
+  res.m[10] = c;
+  return res;
+}
+
+mat4 rotate_x(float angle) {
+  mat4 res = identity();
+  float rad = angle * M_PI / 180.0f;
+  float c = cosf(rad);
+  float s = sinf(rad);
+  res.m[5] = c;
+  res.m[6] = -s;
+  res.m[9] = s;
+  res.m[10] = c;
+  return res;
+}

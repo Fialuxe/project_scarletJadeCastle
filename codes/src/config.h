@@ -3,6 +3,6 @@
 
 #define SCR_WIDTH 1280
 #define SCR_HEIGHT 720
-#define WINDOW_TITLE "Aincrad Floor Prototype"
+#define WINDOW_TITLE "Gardens Scarlet Jade Castle"
 
 #endif

@@ -1,4 +1,6 @@
 #include "mesh.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 Mesh Mesh_CreatePlane(float size) {
   Mesh mesh;
@@ -244,5 +246,174 @@ Mesh Mesh_CreateCube(float width, float height, float depth) {
 void Mesh_Draw(Mesh *mesh) {
   glBindVertexArray(mesh->VAO);
   glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+  glBindVertexArray(0);
+}
+
+#include <assimp/cimport.h>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <stdio.h>
+
+Mesh Mesh_LoadModel(const char *path) {
+  Mesh mesh = {0};
+
+  const struct aiScene *scene = aiImportFile(
+      path, aiProcess_Triangulate | aiProcess_FlipUVs |
+                aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals |
+                aiProcess_JoinIdenticalVertices);
+
+  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      !scene->mRootNode) {
+    printf("ERROR::ASSIMP::%s\n", aiGetErrorString());
+    return mesh;
+  }
+
+  // Combine all meshes into one
+  int numVertices = 0;
+  int numIndices = 0;
+
+  for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+    numVertices += scene->mMeshes[i]->mNumVertices;
+    for (unsigned int f = 0; f < scene->mMeshes[i]->mNumFaces; f++) {
+      numIndices += scene->mMeshes[i]->mFaces[f].mNumIndices;
+    }
+  }
+
+  printf("Mesh_LoadModel: Loading %s. Combined %d meshes. Verts: %d, Indices: "
+         "%d\n",
+         path, scene->mNumMeshes, numVertices, numIndices);
+
+  // Vertex format: Pos(3), Normal(3), UV(2), Tangent(3) -> 11 floats
+  int stride = 11;
+  float *vertices = (float *)malloc(numVertices * stride * sizeof(float));
+  unsigned int *indices =
+      (unsigned int *)malloc(numIndices * sizeof(unsigned int));
+
+  int currentVertexOffset = 0;
+  int currentIndexOffset = 0;
+
+  for (unsigned int m = 0; m < scene->mNumMeshes; m++) {
+    struct aiMesh *aMesh = scene->mMeshes[m];
+
+    for (unsigned int i = 0; i < aMesh->mNumVertices; i++) {
+      int vIdx = currentVertexOffset + i;
+      // Position
+      vertices[vIdx * stride + 0] = aMesh->mVertices[i].x;
+      vertices[vIdx * stride + 1] = aMesh->mVertices[i].y;
+      vertices[vIdx * stride + 2] = aMesh->mVertices[i].z;
+
+      // Normal
+      if (aMesh->mNormals) {
+        vertices[vIdx * stride + 3] = aMesh->mNormals[i].x;
+        vertices[vIdx * stride + 4] = aMesh->mNormals[i].y;
+        vertices[vIdx * stride + 5] = aMesh->mNormals[i].z;
+      } else {
+        vertices[vIdx * stride + 3] = 0.0f;
+        vertices[vIdx * stride + 4] = 1.0f;
+        vertices[vIdx * stride + 5] = 0.0f;
+      }
+
+      // UV
+      if (aMesh->mTextureCoords[0]) {
+        vertices[vIdx * stride + 6] = aMesh->mTextureCoords[0][i].x;
+        vertices[vIdx * stride + 7] = aMesh->mTextureCoords[0][i].y;
+      } else {
+        vertices[vIdx * stride + 6] = 0.0f;
+        vertices[vIdx * stride + 7] = 0.0f;
+      }
+
+      // Tangent
+      if (aMesh->mTangents) {
+        vertices[vIdx * stride + 8] = aMesh->mTangents[i].x;
+        vertices[vIdx * stride + 9] = aMesh->mTangents[i].y;
+        vertices[vIdx * stride + 10] = aMesh->mTangents[i].z;
+      } else {
+        vertices[vIdx * stride + 8] = 1.0f;
+        vertices[vIdx * stride + 9] = 0.0f;
+        vertices[vIdx * stride + 10] = 0.0f;
+      }
+    }
+
+    // Indices
+    for (unsigned int f = 0; f < aMesh->mNumFaces; f++) {
+      struct aiFace face = aMesh->mFaces[f];
+      for (unsigned int j = 0; j < face.mNumIndices; j++) {
+        indices[currentIndexOffset++] = face.mIndices[j] + currentVertexOffset;
+      }
+    }
+    currentVertexOffset += aMesh->mNumVertices;
+  }
+
+  mesh.indexCount = numIndices;
+
+  glGenVertexArrays(1, &mesh.VAO);
+  glGenBuffers(1, &mesh.VBO);
+  glGenBuffers(1, &mesh.EBO);
+
+  glBindVertexArray(mesh.VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh.VBO);
+  glBufferData(GL_ARRAY_BUFFER, numVertices * stride * sizeof(float), vertices,
+               GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(unsigned int),
+               indices, GL_STATIC_DRAW);
+
+  // Attribs
+  int strideBytes = stride * sizeof(float);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideBytes, (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, strideBytes,
+                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, strideBytes,
+                        (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, strideBytes,
+                        (void *)(8 * sizeof(float)));
+
+  glBindVertexArray(0);
+
+  free(vertices);
+  free(indices);
+  aiReleaseImport(scene);
+
+  return mesh;
+}
+
+void Mesh_SetupInstanced(Mesh *mesh, int instanceCount, const float *matrices) {
+  glGenBuffers(1, &mesh->instanceVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh->instanceVBO);
+  glBufferData(GL_ARRAY_BUFFER, instanceCount * sizeof(float) * 16, matrices,
+               GL_STATIC_DRAW);
+
+  glBindVertexArray(mesh->VAO);
+  // Vertex Attributes
+  // vec4 * 4
+  glEnableVertexAttribArray(4);
+  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float),
+                        (void *)0);
+  glEnableVertexAttribArray(5);
+  glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float),
+                        (void *)(4 * sizeof(float)));
+  glEnableVertexAttribArray(6);
+  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float),
+                        (void *)(8 * sizeof(float)));
+  glEnableVertexAttribArray(7);
+  glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float),
+                        (void *)(12 * sizeof(float)));
+
+  glVertexAttribDivisor(4, 1);
+  glVertexAttribDivisor(5, 1);
+  glVertexAttribDivisor(6, 1);
+  glVertexAttribDivisor(7, 1);
+
+  glBindVertexArray(0);
+}
+
+void Mesh_DrawInstanced(Mesh *mesh, int instanceCount) {
+  glBindVertexArray(mesh->VAO);
+  glDrawElementsInstanced(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0,
+                          instanceCount);
   glBindVertexArray(0);
 }

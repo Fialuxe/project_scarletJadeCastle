@@ -8,10 +8,14 @@ typedef struct {
   GLuint VBO;
   GLuint EBO;
   int indexCount;
+  GLuint instanceVBO;
 } Mesh;
 
 Mesh Mesh_CreatePlane(float size);
 Mesh Mesh_CreateCube(float width, float height, float depth);
+Mesh Mesh_LoadModel(const char *path);
 void Mesh_Draw(Mesh *mesh);
+void Mesh_SetupInstanced(Mesh *mesh, int instanceCount, const float *matrices);
+void Mesh_DrawInstanced(Mesh *mesh, int instanceCount);
 
 #endif
