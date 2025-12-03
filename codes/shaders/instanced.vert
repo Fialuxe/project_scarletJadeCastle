@@ -1,3 +1,11 @@
+# This vertex shader is used to render instanced objects.
+# Algorithm: Instancing
+# Description:
+# - Instancing is a method of rendering multiple instances of the same object in a single draw call.
+# - The object is rendered multiple times with different transformations.
+# - The transformations are stored in a buffer and passed to the shader.
+# - The shader uses the transformations to render the object multiple times.
+
 #version 330 core
 
 layout (location = 0) in vec3 aPos;

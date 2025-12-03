@@ -1,3 +1,11 @@
+# This fragment shader is used to render the floor.
+# Algorithm: Blinn-Phong
+# Description: 
+# - Blinn-Phong is a method of calculating lighting.
+# - It is a variation of Phong lighting.
+# - It is faster than Phong lighting.
+# - It is used to calculate the lighting of the floor.
+
 #version 330 core
 
 out vec4 FragColor;
@@ -46,10 +54,9 @@ void main()
     vec3 specular = spec * sunColor * specularIntensity;
 
     // Ambient (Hemisphere Lighting)
-    // Up vector is (0, 1, 0) in world space. 
-    // We assume normal is in world space (if TBN is correct).
-    float hemiFactor = 0.5 * (normal.y + 1.0);
-    vec3 ambient = mix(groundColor, skyColor, hemiFactor);
+    // float hemiMix = remap(normal.y, -1.0, 1.0, 0.0, 1.0); -> (normal.y + 1.0) * 0.5
+    float hemiMix = (normal.y + 1.0) * 0.5;
+    vec3 ambient = mix(groundColor, skyColor, hemiMix);
 
     // Base Color
     vec3 baseColor = objectColor;
@@ -57,8 +64,22 @@ void main()
         baseColor = texture(diffuseMap, TexCoord).rgb;
     }
 
-    // Combine
-    vec3 result = (ambient + diffuse + specular) * baseColor;
+    // Combine Lighting
+    vec3 lighting = ambient + diffuse + specular;
+    vec3 finalColor = lighting * baseColor;
+
+    // Fresnel (Rim Lighting)
+    float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 3.0);
+    finalColor = mix(finalColor, skyColor, fresnel * 0.5);
+    
+    // Atmospheric Fog
+    float dist = length(viewPos - FragPos);
+    float fogDensity = 0.005; // Reduced density for squared falloff
+    float fogFactor = 1.0 - exp(-dist * dist * fogDensity * fogDensity); // exp(-d^2 * density^2)
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
+    
+    // Mix result with skyColor (as fogColor)
+    vec3 result = mix(finalColor, skyColor, fogFactor);
     
     // Tone Mapping (Reinhard) - Prevents blown out highlights
     // result = result / (result + vec3(1.0));

@@ -110,12 +110,12 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 #define FLOWER_SCALE 2.0f
 
 // Lighting
-#define SUN_DIR_X 0.5f
-#define SUN_DIR_Y -0.1f
-#define SUN_DIR_Z 0.5f
+#define SUN_DIR_X -0.5f
+#define SUN_DIR_Y -0.05f
+#define SUN_DIR_Z -0.5f
 
-#define SUN_COLOR_R 1.0f
-#define SUN_COLOR_G 0.6f
+#define SUN_COLOR_R 1.2f
+#define SUN_COLOR_G 0.7f
 #define SUN_COLOR_B 0.3f
 
 #define SKY_COLOR_R 0.2f
@@ -145,6 +145,8 @@ int main() {
   GLuint shader = Shader_Create("shaders/floor.vert", "shaders/floor.frag");
   GLuint instancedShader =
       Shader_Create("shaders/instanced.vert", "shaders/floor.frag");
+  GLuint skyboxShader =
+      Shader_Create("shaders/skybox.vert", "shaders/skybox.frag");
   GLuint normalMap = Texture_CreateProceduralNormalMap(512, 512);
   GLuint asphaltNormalMap = Texture_CreateNoiseNormalMap(512, 512);
   GLuint grassTexture = Texture_CreateGrassTexture(512, 512);
@@ -161,8 +163,7 @@ int main() {
   // Load Gazebo Model
   Mesh gazeboMesh = Mesh_LoadModel("../materials/gazebo/base_basic_pbr.fbx");
   // Load Gazebo Texture
-  GLuint gazeboTexture =
-      Texture_Load("../materials/gazebo/texture_diffuse.png");
+  GLuint gazeboTexture = Texture_Load("../materials/gazebo/shaded.png");
 
   // Create Border Mesh (Curb)
   Mesh borderMesh = Mesh_CreateCube(BORDER_WIDTH, BORDER_HEIGHT, BORDER_DEPTH);
@@ -176,8 +177,12 @@ int main() {
   // Load Flower Model
   Mesh flowerMesh = Mesh_LoadModel("../materials/flower/flower_pbr.fbx");
   // Load Flower Texture
-  GLuint flowerTexture =
-      Texture_Load("../materials/flower/texture_diffuse.png");
+  GLuint flowerTexture = Texture_Load("../materials/flower/shaded.png");
+
+  // Load Skybox Texture
+  GLuint skyboxTexture = Texture_Load(
+      "../materials/sky/Gemini_Generated_Image_ikqh7oikqh7oikqh.png");
+  Mesh skyboxMesh = Mesh_CreateCube(100.0f, 100.0f, 100.0f);
 
   // --- Setup Flower Instances ---
   float flowerStartZ = 6.0f;
@@ -188,7 +193,18 @@ int main() {
   }
   int totalFlowers = FLOWER_ROWS * zCount * 4; // 4 sections (L/R, Near/Far)
   float *flowerMatrices = (float *)malloc(totalFlowers * 16 * sizeof(float));
+  // Allocate extra space for 4 central flowers
+  float *flowerWMatrices =
+      (float *)malloc((totalFlowers + 4) * 16 * sizeof(float));
   int fIdx = 0;
+  int fwIdx = 0;
+// Helper macro to add flower to random list
+#define ADD_FLOWER(model)                                                      \
+  if (rand() % 2 == 0) {                                                       \
+    storeMatrix(flowerMatrices, fIdx++, model);                                \
+  } else {                                                                     \
+    storeMatrix(flowerWMatrices, fwIdx++, model);                              \
+  }
 
   // Left Side (Near)
   for (int row = 0; row < FLOWER_ROWS; row++) {
@@ -200,9 +216,7 @@ int main() {
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
       model = mat4_multiply(rotate_x(90.0f), model);
-      // move the model slightly below
-
-      storeMatrix(flowerMatrices, fIdx++, model);
+      ADD_FLOWER(model);
     }
   }
   // Right Side (Near)
@@ -215,7 +229,7 @@ int main() {
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
       model = mat4_multiply(rotate_x(90.0f), model);
-      storeMatrix(flowerMatrices, fIdx++, model);
+      ADD_FLOWER(model);
     }
   }
   // Left Side (Far)
@@ -228,7 +242,7 @@ int main() {
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
       model = mat4_multiply(rotate_x(90.0f), model);
-      storeMatrix(flowerMatrices, fIdx++, model);
+      ADD_FLOWER(model);
     }
   }
   // Right Side (Far)
@@ -242,12 +256,31 @@ int main() {
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
       model = mat4_multiply(rotate_x(90.0f), model);
-      storeMatrix(flowerMatrices, fIdx++, model);
+      ADD_FLOWER(model);
     }
   }
 
-  Mesh_SetupInstanced(&flowerMesh, totalFlowers, flowerMatrices);
+  // --- Add 4 Central White Flowers ---
+  float centerXs[] = {-GRASS_OFFSET_X, GRASS_OFFSET_X, -GRASS_OFFSET_X,
+                      GRASS_OFFSET_X};
+  float centerZs[] = {SECTION_OFFSET_Z, SECTION_OFFSET_Z, -SECTION_OFFSET_Z,
+                      -SECTION_OFFSET_Z};
+
+  for (int i = 0; i < 4; i++) {
+    mat4 model = identity();
+    model = mat4_multiply(translate(centerXs[i], FLOWER_Y_OFFSET, centerZs[i]),
+                          model);
+    model = mat4_multiply(
+        scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
+    model = mat4_multiply(rotate_y(90.0f), model);
+    model = mat4_multiply(rotate_x(90.0f), model);
+    storeMatrix(flowerWMatrices, fwIdx++, model);
+  }
+
+  Mesh_SetupInstanced(&flowerMesh, fIdx, flowerMatrices);
+  Mesh_SetupInstanced(&flowerWMesh, fwIdx, flowerWMatrices);
   free(flowerMatrices);
+  free(flowerWMatrices);
 
   // 5. Lighting Config
   vec3 sunDir = {SUN_DIR_X, SUN_DIR_Y, SUN_DIR_Z};
@@ -445,7 +478,7 @@ int main() {
     // Scale might be needed if it's too big/small.
     // magic number 0.75 for the proper scaling
     modelBridge = mat4_multiply(
-        scale(0.72 * BRIDGE_SCALE, 0.75 * BRIDGE_SCALE, 0.8 * BRIDGE_SCALE),
+        scale(0.72 * BRIDGE_SCALE, 0.9 * BRIDGE_SCALE, 0.8 * BRIDGE_SCALE),
         modelBridge);
     modelBridge = mat4_multiply(rotate_y(90.0f), modelBridge);
     modelBridge = mat4_multiply(rotate_x(90.0f), modelBridge);
@@ -523,7 +556,28 @@ int main() {
     Shader_SetMat4(shader, "model", modelGrass4.m);
     Mesh_Draw(&grassMesh);
 
+    // --- Draw Skybox ---
+    glDepthFunc(GL_LEQUAL);
+    glDisable(GL_CULL_FACE); // Disable culling to see inside the cube
+    Shader_Use(skyboxShader);
+    // Remove translation from view matrix
+    mat4 viewSkybox = view;
+    viewSkybox.m[12] = 0.0f;
+    viewSkybox.m[13] = 0.0f;
+    viewSkybox.m[14] = 0.0f;
+    Shader_SetMat4(skyboxShader, "view", viewSkybox.m);
+    Shader_SetMat4(skyboxShader, "projection", proj.m);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, skyboxTexture);
+    Shader_SetInt(skyboxShader, "skybox", 0);
+
+    Mesh_Draw(&skyboxMesh);
+    glEnable(GL_CULL_FACE); // Re-enable culling
+    glDepthFunc(GL_LESS);
+
     // --- Draw Gazebos ---
+    Shader_Use(shader);
     // Use diffuse map
     Shader_SetInt(shader, "useDiffuseMap", 1);
     Shader_SetVec3(shader, "objectColor", 1.0f, 1.0f,
