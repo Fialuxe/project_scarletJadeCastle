@@ -10,7 +10,8 @@ uniform sampler2D normalMap;
 uniform vec3 viewPos;
 uniform vec3 sunDir;
 uniform vec3 sunColor;
-uniform vec3 ambientColor;
+uniform vec3 skyColor;
+uniform vec3 groundColor;
 uniform vec3 objectColor;
 uniform float shininess;
 uniform float specularIntensity;
@@ -44,8 +45,11 @@ void main()
     float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
     vec3 specular = spec * sunColor * specularIntensity;
 
-    // Ambient
-    vec3 ambient = ambientColor;
+    // Ambient (Hemisphere Lighting)
+    // Up vector is (0, 1, 0) in world space. 
+    // We assume normal is in world space (if TBN is correct).
+    float hemiFactor = 0.5 * (normal.y + 1.0);
+    vec3 ambient = mix(groundColor, skyColor, hemiFactor);
 
     // Base Color
     vec3 baseColor = objectColor;

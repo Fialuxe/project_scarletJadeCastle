@@ -111,16 +111,20 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 
 // Lighting
 #define SUN_DIR_X 0.5f
-#define SUN_DIR_Y -0.2f
+#define SUN_DIR_Y -0.1f
 #define SUN_DIR_Z 0.5f
 
 #define SUN_COLOR_R 1.0f
-#define SUN_COLOR_G 0.8f
-#define SUN_COLOR_B 0.7f
+#define SUN_COLOR_G 0.6f
+#define SUN_COLOR_B 0.3f
 
-#define AMBIENT_COLOR_R 0.25f
-#define AMBIENT_COLOR_G 0.1f
-#define AMBIENT_COLOR_B 0.1f
+#define SKY_COLOR_R 0.2f
+#define SKY_COLOR_G 0.2f
+#define SKY_COLOR_B 0.4f
+
+#define GROUND_COLOR_R 0.1f
+#define GROUND_COLOR_G 0.05f
+#define GROUND_COLOR_B 0.05f
 
 int main() {
   // 1. Init Window
@@ -246,18 +250,19 @@ int main() {
   free(flowerMatrices);
 
   // 5. Lighting Config
-  // 5. Lighting Config
   vec3 sunDir = {SUN_DIR_X, SUN_DIR_Y, SUN_DIR_Z};
   vec3 sunColor = {SUN_COLOR_R, SUN_COLOR_G, SUN_COLOR_B};
-  vec3 ambientColor = {AMBIENT_COLOR_R, AMBIENT_COLOR_G, AMBIENT_COLOR_B};
+  vec3 skyColor = {SKY_COLOR_R, SKY_COLOR_G, SKY_COLOR_B};
+  vec3 groundColor = {GROUND_COLOR_R, GROUND_COLOR_G, GROUND_COLOR_B};
 
   Shader_Use(shader);
   Shader_SetInt(shader, "normalMap", 0);
   Shader_SetInt(shader, "diffuseMap", 1); // Texture unit 1 for diffuse
   Shader_SetVec3(shader, "sunDir", sunDir.x, sunDir.y, sunDir.z);
   Shader_SetVec3(shader, "sunColor", sunColor.x, sunColor.y, sunColor.z);
-  Shader_SetVec3(shader, "ambientColor", ambientColor.x, ambientColor.y,
-                 ambientColor.z);
+  Shader_SetVec3(shader, "skyColor", skyColor.x, skyColor.y, skyColor.z);
+  Shader_SetVec3(shader, "groundColor", groundColor.x, groundColor.y,
+                 groundColor.z);
 
   // 6. Main Loop
   float deltaTime = 0.0f;
@@ -590,8 +595,10 @@ int main() {
     Shader_SetVec3(instancedShader, "sunDir", sunDir.x, sunDir.y, sunDir.z);
     Shader_SetVec3(instancedShader, "sunColor", sunColor.x, sunColor.y,
                    sunColor.z);
-    Shader_SetVec3(instancedShader, "ambientColor", ambientColor.x,
-                   ambientColor.y, ambientColor.z);
+    Shader_SetVec3(instancedShader, "skyColor", skyColor.x, skyColor.y,
+                   skyColor.z);
+    Shader_SetVec3(instancedShader, "groundColor", groundColor.x, groundColor.y,
+                   groundColor.z);
     Shader_SetVec3(instancedShader, "viewPos", camera.Position.x,
                    camera.Position.y, camera.Position.z);
 
