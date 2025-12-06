@@ -104,7 +104,19 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 
 #define GODRAY_OFFSET_Y 5.1f
 
-#define HEDGE_OFFSET_X 35.0f
+// Outer Floor (Next to Grass)
+// Grass ends at 4.0 + 30.0 = 34.0.
+// Floor Width 4.0. Center at 34.0 + 2.0 = 36.0.
+#define OUTER_FLOOR_OFFSET_X 36.0f
+
+// Outer Grass (Next to Outer Floor)
+// Outer Floor ends at 36.0 + 2.0 = 38.0.
+// Grass Width 30.0. Center at 38.0 + 15.0 = 53.0.
+#define OUTER_GRASS_OFFSET_X 53.0f
+
+// Hedge moved out by Grass Size (30) + Floor Width (4) = 34.0
+// Original 35.0 + 34.0 = 69.0
+#define HEDGE_OFFSET_X 69.0f
 #define HEDGE_SPACING_Z 16.0f
 #define HEDGE_SCALE 0.05f
 #define HEDGE_Y_OFFSET -1.0f
@@ -618,6 +630,70 @@ int main() {
         Mesh_Draw(&borderMesh);
       }
 
+      // --- Draw Outer Floor & Borders (Next to Grass) ---
+      if (pass != 0) {
+        // Outer Floor (Left & Right)
+        float outerFloorX[] = {-OUTER_FLOOR_OFFSET_X, OUTER_FLOOR_OFFSET_X};
+
+        // Use Floor Material
+        Shader_SetVec3(shader, "objectColor", 0.4f, 0.4f, 0.45f); // Stone Grey
+        Shader_SetFloat(shader, "shininess", 32.0f);
+        Shader_SetFloat(shader, "specularIntensity", 0.2f);
+        Shader_SetInt(shader, "useDiffuseMap", 0);
+        Shader_SetInt(shader, "useNormalMap", 1);
+        glBindTexture(GL_TEXTURE_2D, normalMap);
+
+        for (int i = 0; i < 2; i++) {
+          // Near
+          mat4 modelFn = identity();
+          modelFn.m[12] = outerFloorX[i];
+          modelFn.m[13] = -1.0f;
+          modelFn.m[14] = SECTION_OFFSET_Z;
+          Shader_SetMat4(shader, "model", modelFn.m);
+          Mesh_Draw(&floorMesh);
+
+          // Far
+          mat4 modelFf = identity();
+          modelFf.m[12] = outerFloorX[i];
+          modelFf.m[13] = -1.0f;
+          modelFf.m[14] = -SECTION_OFFSET_Z;
+          Shader_SetMat4(shader, "model", modelFf.m);
+          Mesh_Draw(&floorMesh);
+        }
+
+        // Outer Borders
+        float outerBorderOffset = 1.925f;
+        float outerBorderX[] = {
+            -OUTER_FLOOR_OFFSET_X - outerBorderOffset, // Left Outer
+            -OUTER_FLOOR_OFFSET_X + outerBorderOffset, // Left Inner
+            OUTER_FLOOR_OFFSET_X - outerBorderOffset,  // Right Inner
+            OUTER_FLOOR_OFFSET_X + outerBorderOffset   // Right Outer
+        };
+
+        // Use Border Material
+        Shader_SetVec3(shader, "objectColor", 0.7f, 0.7f, 0.7f);
+        Shader_SetFloat(shader, "shininess", 32.0f);
+        Shader_SetFloat(shader, "specularIntensity", 0.5f);
+
+        for (int i = 0; i < 4; i++) {
+          // Near
+          mat4 modelBn = identity();
+          modelBn.m[12] = outerBorderX[i];
+          modelBn.m[13] = BORDER_Y;
+          modelBn.m[14] = SECTION_OFFSET_Z;
+          Shader_SetMat4(shader, "model", modelBn.m);
+          Mesh_Draw(&borderMesh);
+
+          // Far
+          mat4 modelBf = identity();
+          modelBf.m[12] = outerBorderX[i];
+          modelBf.m[13] = BORDER_Y;
+          modelBf.m[14] = -SECTION_OFFSET_Z;
+          Shader_SetMat4(shader, "model", modelBf.m);
+          Mesh_Draw(&borderMesh);
+        }
+      }
+
       // --- Draw Bridge ---
       // Use diffuse map
       Shader_SetInt(shader, "useDiffuseMap", 1);
@@ -748,6 +824,41 @@ int main() {
         modelGrass4.m[13] = -1.0f;
         modelGrass4.m[14] = -SECTION_OFFSET_Z;
         Shader_SetMat4(grassShader, "model", modelGrass4.m);
+        Mesh_Draw(&grassMesh);
+
+        // --- Draw Outer Grass (Next to Outer Floor) ---
+        // Uses global OUTER_GRASS_OFFSET_X (53.0f)
+
+        // Left Outer Grass (Near)
+        mat4 modelOG1 = identity();
+        modelOG1.m[12] = -OUTER_GRASS_OFFSET_X;
+        modelOG1.m[13] = -1.0f;
+        modelOG1.m[14] = SECTION_OFFSET_Z;
+        Shader_SetMat4(grassShader, "model", modelOG1.m);
+        Mesh_Draw(&grassMesh);
+
+        // Right Outer Grass (Near)
+        mat4 modelOG2 = identity();
+        modelOG2.m[12] = OUTER_GRASS_OFFSET_X;
+        modelOG2.m[13] = -1.0f;
+        modelOG2.m[14] = SECTION_OFFSET_Z;
+        Shader_SetMat4(grassShader, "model", modelOG2.m);
+        Mesh_Draw(&grassMesh);
+
+        // Left Outer Grass (Far)
+        mat4 modelOG3 = identity();
+        modelOG3.m[12] = -OUTER_GRASS_OFFSET_X;
+        modelOG3.m[13] = -1.0f;
+        modelOG3.m[14] = -SECTION_OFFSET_Z;
+        Shader_SetMat4(grassShader, "model", modelOG3.m);
+        Mesh_Draw(&grassMesh);
+
+        // Right Outer Grass (Far)
+        mat4 modelOG4 = identity();
+        modelOG4.m[12] = OUTER_GRASS_OFFSET_X;
+        modelOG4.m[13] = -1.0f;
+        modelOG4.m[14] = -SECTION_OFFSET_Z;
+        Shader_SetMat4(grassShader, "model", modelOG4.m);
         Mesh_Draw(&grassMesh);
       }
 
