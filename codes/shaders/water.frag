@@ -7,6 +7,7 @@ in vec4 clipSpaceReflection;
 in vec2 textureCoords;
 in vec3 toCameraVector;
 in vec3 fromLightVector;
+in vec4 worldPositionOut;
 
 uniform sampler2D reflectionTexture;
 uniform sampler2D refractionTexture;
@@ -16,6 +17,7 @@ uniform sampler2D depthMap;
 
 uniform float moveFactor;
 uniform vec3 lightColor; // Sunset Orange: vec3(1.0, 0.6, 0.4)
+uniform vec3 skyColor;
 
 // Sunset Tuning Constants
 const vec3 waterColor = vec3(0.1, 0.05, 0.2); // Deep Purple/Navy
@@ -87,5 +89,12 @@ void main() {
     // Soft Edges Alpha
     finalColor.a = clamp(waterDepth / 1.0, 0.0, 1.0); // Fade over 1.0 unit depth
     
+    // Directional Fog (Z-based, for +Z direction)
+    // Use worldPositionOut.z
+    float zFog = smoothstep(15.0, 40.0, worldPositionOut.z);
+    
+    // Mix result with skyColor
+    finalColor.rgb = mix(finalColor.rgb, skyColor, zFog);
+
     FragColor = finalColor;
 }

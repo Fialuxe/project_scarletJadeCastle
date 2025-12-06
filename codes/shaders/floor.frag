@@ -70,10 +70,17 @@ void main()
     float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 3.0);
     finalColor = mix(finalColor, skyColor, fresnel * 0.5);
     
-    // Atmospheric Fog
+    // Atmospheric Fog (Distance based)
     float dist = length(viewPos - FragPos);
-    float fogDensity = 0.003; // Reduced density for squared falloff
-    float fogFactor = 1.0 - exp(-dist * dist * fogDensity * fogDensity); // exp(-d^2 * density^2)
+    float fogDensity = 0.003; 
+    float distFog = 1.0 - exp(-dist * dist * fogDensity * fogDensity);
+    
+    // Directional Fog (Z-based, for +Z direction)
+    // Starts at Z=15, fully opaque at Z=40 (before geometry ends at ~43.5)
+    float zFog = smoothstep(15.0, 40.0, FragPos.z);
+    
+    // Combine fogs (take the maximum effect)
+    float fogFactor = max(distFog, zFog);
     fogFactor = clamp(fogFactor, 0.0, 1.0);
     
     // Mix result with skyColor (as fogColor)

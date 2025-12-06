@@ -94,6 +94,10 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 #define GAZEBO_Y_OFFSET 0.0f
 #define GAZEBO_SCALE 3.0f
 
+// World Boundaries
+#define WORLD_LIMIT_X 4.0f
+#define WORLD_LIMIT_Z 40.0f
+#define WORLD_MIN_Y 1.5f
 // OFFSET for bridge
 #define BRIDGE_OFFSET_X 0.0f
 #define BRIDGE_OFFSET_Z -0.04f
@@ -120,6 +124,11 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 #define HEDGE_SPACING_Z 16.0f
 #define HEDGE_SCALE 0.05f
 #define HEDGE_Y_OFFSET -1.0f
+
+#define FENCE_WIDTH 0.2f
+#define FENCE_HEIGHT 9.0f
+#define FENCE_DEPTH 10.0f // Slightly longer to ensure overlap/no gap
+#define FENCE_Y_OFFSET 0.0f
 
 #define HALFPIPE_OFFSET_X 0.0f
 #define HALFPIPE_OFFSET_Y                                                      \
@@ -185,7 +194,7 @@ int main() {
 
   // 3. Init Camera
   Camera camera;
-  vec3 startPos = {0.0f, 1.5f, 3.0f};
+  vec3 startPos = {0.0f, 1.5f, 40.0f};
   vec3 up = {0.0f, 1.0f, 0.0f};
   Camera_Init(&camera, startPos, up, -90.0f, 0.0f);
 
@@ -262,6 +271,9 @@ int main() {
       "../materials/hedge/source/hedge-obj/rhedgeTextured.obj",
       "../materials/hedge/source/hedge-obj/hedge-displacement-texture.jpg",
       &hedgeMesh, &hedgeTexture);
+
+  // Create Fence Mesh (Cube)
+  Mesh fenceMesh = Mesh_CreateCube(FENCE_WIDTH, FENCE_HEIGHT, FENCE_DEPTH);
 
   // Create God Ray Mesh (Cylinder)
   // Radius ~0.5, Height ~5.0 (long enough to fade out)
@@ -413,8 +425,8 @@ int main() {
 
     mat4 model = identity();
     model = mat4_multiply(translate(-HEDGE_OFFSET_X, HEDGE_Y_OFFSET, z), model);
-    model = mat4_multiply(scale(0.7 * HEDGE_SCALE, HEDGE_SCALE, HEDGE_SCALE),
-                          model);
+    model = mat4_multiply(
+        scale(0.7 * HEDGE_SCALE, HEDGE_SCALE * 2.0f, HEDGE_SCALE), model);
     model = mat4_multiply(rotate_y(90.0f), model);
     storeMatrix(hedgeMatrices, hIdx++, model);
   }
@@ -426,8 +438,8 @@ int main() {
 
     mat4 model = identity();
     model = mat4_multiply(translate(HEDGE_OFFSET_X, HEDGE_Y_OFFSET, z), model);
-    model = mat4_multiply(scale(HEDGE_SCALE * 0.7, HEDGE_SCALE, HEDGE_SCALE),
-                          model);
+    model = mat4_multiply(
+        scale(HEDGE_SCALE * 0.7, HEDGE_SCALE * 2.0f, HEDGE_SCALE), model);
     model = mat4_multiply(rotate_y(90.0f), model);
     storeMatrix(hedgeMatrices, hIdx++, model);
   }
@@ -486,6 +498,23 @@ int main() {
       camera.Position.y += 2.5f * deltaTime; // Move Up
     if (Input_GetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
       camera.Position.y -= 2.5f * deltaTime; // Move Down
+
+    // --- Apply World Boundaries (Collision) ---
+    // Clamp X
+    if (camera.Position.x > WORLD_LIMIT_X)
+      camera.Position.x = WORLD_LIMIT_X;
+    if (camera.Position.x < -WORLD_LIMIT_X)
+      camera.Position.x = -WORLD_LIMIT_X;
+
+    // Clamp Z
+    if (camera.Position.z > WORLD_LIMIT_Z)
+      camera.Position.z = WORLD_LIMIT_Z;
+    if (camera.Position.z < -WORLD_LIMIT_Z)
+      camera.Position.z = -WORLD_LIMIT_Z;
+
+    // Clamp Y (Ground Collision)
+    if (camera.Position.y < WORLD_MIN_Y)
+      camera.Position.y = WORLD_MIN_Y;
 
     // Window Size
     int width, height;
@@ -896,6 +925,35 @@ int main() {
 
       Mesh_DrawInstanced(&hedgeMesh, hIdx);
 
+      // --- Draw Fences (Between Hedges) ---
+      Shader_Use(
+          shader); // Use standard shader for fences (no instancing needed for
+                   // simple cubes yet, or could instance if many)
+      // Simple material for Stone
+      Shader_SetVec3(shader, "objectColor", 0.5f, 0.5f, 0.55f); // Stone Grey
+      Shader_SetFloat(shader, "shininess", 32.0f);
+      Shader_SetFloat(shader, "specularIntensity", 0.2f);
+      Shader_SetInt(shader, "useDiffuseMap", 0);
+      Shader_SetInt(shader, "useNormalMap", 0); // No normal map for now
+
+      // Iterate through hedge positions to place fences in between
+      // Hedge Z loop was: z = hedgeStartZ to hedgeEndZ step HEDGE_SPACING_Z
+      // We want to place a fence at z + HEDGE_SPACING_Z / 2.0f
+      // But stop before the last hedge
+      for (float z = hedgeStartZ; z < hedgeEndZ; z += HEDGE_SPACING_Z) {
+        if (fabs(z) < 8.0f)
+          continue; // Skip bridge area
+
+        float midZ = z + HEDGE_SPACING_Z / 2.0f;
+
+        // Also check if midZ is in bridge area
+        if (fabs(midZ) < 8.0f)
+          continue;
+
+        DrawSymmetricLayer(shader, &fenceMesh, HEDGE_OFFSET_X, FENCE_Y_OFFSET,
+                           midZ);
+      }
+
       // Reset Active Texture to 0
       glActiveTexture(GL_TEXTURE0);
 
@@ -1017,6 +1075,8 @@ int main() {
                        camera.Position.y, camera.Position.z);
         Shader_SetVec3(waterShader, "lightPosition", 0.5f, -0.05f, -0.5f);
         Shader_SetVec3(waterShader, "lightColor", 1.0f, 0.6f, 0.4f);
+        Shader_SetVec3(waterShader, "skyColor", skyColor.x, skyColor.y,
+                       skyColor.z);
         Shader_SetFloat(waterShader, "moveFactor", waterMoveFactor);
 
         glActiveTexture(GL_TEXTURE0);

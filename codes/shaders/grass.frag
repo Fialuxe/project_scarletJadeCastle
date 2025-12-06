@@ -68,7 +68,13 @@ void main()
     // Atmospheric Fog
     float dist = length(viewPos - FragPos);
     float fogDensity = 0.005; 
-    float fogFactor = 1.0 - exp(-dist * dist * fogDensity * fogDensity); 
+    float distFog = 1.0 - exp(-dist * dist * fogDensity * fogDensity); 
+
+    // Directional Fog (Z-based, for +Z direction)
+    float zFog = smoothstep(15.0, 40.0, FragPos.z);
+
+    // Combine fogs
+    float fogFactor = max(distFog, zFog);
     fogFactor = clamp(fogFactor, 0.0, 1.0);
     
     // Mix result with skyColor (as fogColor)

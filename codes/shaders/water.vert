@@ -8,6 +8,7 @@ out vec4 clipSpace;
 out vec2 textureCoords;
 out vec3 toCameraVector;
 out vec3 fromLightVector;
+out vec4 worldPositionOut;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -19,6 +20,7 @@ const float tiling = 1.0;
 
 void main() {
     vec4 worldPosition = model * vec4(aPos, 1.0);
+    worldPositionOut = worldPosition;
     clipSpace = projection * view * worldPosition;
     gl_Position = clipSpace;
     
