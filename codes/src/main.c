@@ -734,9 +734,10 @@ int main() {
 
         mat4 modelHalfpipe = identity();
         // Scale
-        modelHalfpipe = mat4_multiply(
-            scale(13 * HALFPIPE_SCALE, HALFPIPE_SCALE, HALFPIPE_SCALE),
-            modelHalfpipe);
+        modelHalfpipe =
+            mat4_multiply(scale(25 * HALFPIPE_SCALE, 0.6 * HALFPIPE_SCALE,
+                                0.6 * HALFPIPE_SCALE),
+                          modelHalfpipe);
         // Rotate
         modelHalfpipe = mat4_multiply(rotate_y(90.0f), modelHalfpipe);
         modelHalfpipe = mat4_multiply(rotate_x(180.0f), modelHalfpipe);
@@ -1116,8 +1117,8 @@ int main() {
         mat4 proj =
             perspective(1.57f, (float)width / (float)height, 0.1f, 2000.0f);
         mat4 model = identity();
-        model = mat4_multiply(scale(0.9f, 1.0f, 0.05f), model);
-        model = mat4_multiply(translate(10.0f, WATER_HEIGHT, 0.0f), model);
+        model = mat4_multiply(scale(1.43f, 1.0f, 0.05f), model);
+        model = mat4_multiply(translate(0.0f, WATER_HEIGHT, 0.0f), model);
 
         Shader_SetMat4(waterShader, "view", view.m);
         Shader_SetMat4(waterShader, "projection", proj.m);
