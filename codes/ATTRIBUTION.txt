@@ -1,0 +1,19 @@
+Attribution Notice
+
+This project utilizes 3D models generated via Deemos Technologies Inc.'s Services (Rodin).
+
+These assets are used in compliance with the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0).
+
+Service Provider: Deemos Technologies Inc.
+Services Used: Rodin
+License: CC BY-NC-SA 4.0
+License URL: http://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Hedge Model
+This project utilizes a hedge model licensed under the Creative Commons Attribution 3.0 Unported License (CC BY 3.0).
+
+Attribution:
+Emmanuel PUYBARET / eTeks <info@eteks.com>
+Scopia Visual Interfaces Systems, s.l. (http://www.scopia.es)
+
+License URL: http://creativecommons.org/licenses/by/3.0/

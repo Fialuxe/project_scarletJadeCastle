@@ -13,6 +13,7 @@ typedef struct {
 
 Mesh Mesh_CreatePlane(float size);
 Mesh Mesh_CreateCube(float width, float height, float depth);
+Mesh Mesh_CreateCylinder(float radius, float height, int segments);
 Mesh Mesh_LoadModel(const char *path);
 void Mesh_Draw(Mesh *mesh);
 void Mesh_SetupInstanced(Mesh *mesh, int instanceCount, const float *matrices);

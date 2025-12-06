@@ -72,7 +72,7 @@ void main()
     
     // Atmospheric Fog
     float dist = length(viewPos - FragPos);
-    float fogDensity = 0.005; // Reduced density for squared falloff
+    float fogDensity = 0.003; // Reduced density for squared falloff
     float fogFactor = 1.0 - exp(-dist * dist * fogDensity * fogDensity); // exp(-d^2 * density^2)
     fogFactor = clamp(fogFactor, 0.0, 1.0);
     

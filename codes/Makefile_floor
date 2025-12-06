@@ -8,11 +8,14 @@ TARGET = aincrad_floor
 SRCS = src/main.c \
        src/core/window.c src/core/input.c src/core/camera.c \
        src/graphics/shader.c src/graphics/texture.c src/graphics/mesh.c \
+       src/graphics/water_fbo.c \
        src/utils/math_utils.c src/utils/file_utils.c
 
 # Detect OS
 UNAME_S := $(shell uname -s)
 
+# Add assimp include and lib paths for macOS
+# Work only on my macOS...? (homebrew, assimp)
 ifeq ($(UNAME_S), Darwin)
 	# Mac OS
 	CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/Cellar/assimp/6.0.2/include

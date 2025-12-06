@@ -13,14 +13,39 @@ typedef struct {
 typedef struct {
   float x, y, z;
 } vec3;
+typedef struct {
+  float x, y, z, w;
+} vec4;
 
 // Vector Operations
-vec3 vecAdd(vec3 a, vec3 b);
-vec3 vecSub(vec3 a, vec3 b);
-vec3 vecMul(vec3 a, float s);
-vec3 cross(vec3 a, vec3 b);
+// static for optimization
+static inline vec3 vecAdd(vec3 a, vec3 b) {
+  vec3 r = {a.x + b.x, a.y + b.y, a.z + b.z};
+  return r;
+}
+
+static inline vec3 vecSub(vec3 a, vec3 b) {
+  vec3 r = {a.x - b.x, a.y - b.y, a.z - b.z};
+  return r;
+}
+
+static inline vec3 vecMul(vec3 a, float s) {
+  vec3 r = {a.x * s, a.y * s, a.z * s};
+  return r;
+}
+
+static inline vec3 cross(vec3 a, vec3 b) {
+  vec3 r = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x};
+  return r;
+}
+
+static inline float dot(vec3 a, vec3 b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+float Q_rsqrt(float number);
 vec3 normalize(vec3 v);
-float dot(vec3 a, vec3 b);
 
 // Matrix Operations
 mat4 identity();

@@ -23,4 +23,6 @@ void Camera_ProcessKeyboard(Camera *cam, CameraMovement direction,
                             float deltaTime);
 void Camera_ProcessMouseMovement(Camera *cam, float xoffset, float yoffset);
 
+void Camera_UpdateVectors(Camera *cam);
+
 #endif

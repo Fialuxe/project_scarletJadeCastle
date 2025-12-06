@@ -12,10 +12,13 @@ out mat3 TBN;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec4 plane;
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0));
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = vec3(worldPos);
+    gl_ClipDistance[0] = dot(worldPos, plane); // Added as per instruction
     TexCoord = aTexCoord;
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));

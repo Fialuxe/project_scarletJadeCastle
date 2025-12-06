@@ -1,31 +1,57 @@
 #include "math_utils.h"
 #include <math.h>
 
-vec3 vecAdd(vec3 a, vec3 b) {
-  vec3 r = {a.x + b.x, a.y + b.y, a.z + b.z};
-  return r;
-}
-vec3 vecSub(vec3 a, vec3 b) {
-  vec3 r = {a.x - b.x, a.y - b.y, a.z - b.z};
-  return r;
-}
-vec3 vecMul(vec3 a, float s) {
-  vec3 r = {a.x * s, a.y * s, a.z * s};
-  return r;
-}
-vec3 cross(vec3 a, vec3 b) {
-  vec3 r = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
-            a.x * b.y - a.y * b.x};
-  return r;
-}
+/*
+commented out because of performance issue
 vec3 normalize(vec3 v) {
   float len = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
   if (len == 0)
     return v;
   vec3 r = {v.x / len, v.y / len, v.z / len};
   return r;
+}*/
+
+// Fast Inverse Square Root approximation (1 / sqrt(x))
+// Based on the Quake III Arena algorithm
+float Q_rsqrt(float number) {
+  int i;
+  float x2, y;
+  const float threehalfs = 1.5F;
+
+  x2 = number * 0.5F;
+  y = number;
+
+  // Evil floating point bit level hacking: interpret float bits as integer
+  i = *(int *)&y;
+
+  // Magic number to calculate initial guess
+  i = 0x5f3759df - (i >> 1);
+
+  // Convert integer back to float
+  y = *(float *)&i;
+
+  // 1st iteration of Newton's method for higher precision
+  y = y * (threehalfs - (x2 * y * y));
+
+  return y;
 }
-float dot(vec3 a, vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+
+// Normalize vector using fast inverse square root
+vec3 normalize(vec3 v) {
+  // Calculate squared length (magnitude squared)
+  float sqLen = v.x * v.x + v.y * v.y + v.z * v.z;
+
+  // Prevent division by zero (or very small values)
+  if (sqLen < 1e-6f)
+    return v;
+
+  // Calculate 1 / sqrt(sqLen) efficiently
+  float invLen = Q_rsqrt(sqLen);
+
+  // Multiply by the inverse length instead of dividing
+  vec3 r = {v.x * invLen, v.y * invLen, v.z * invLen};
+  return r;
+}
 
 mat4 identity() {
   mat4 res = {0};
@@ -73,10 +99,9 @@ mat4 mat4_multiply(mat4 a, mat4 b) {
   mat4 res;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      res.m[i * 4 + j] = 0.0f;
-      for (int k = 0; k < 4; k++) {
-        res.m[i * 4 + j] += a.m[i * 4 + k] * b.m[k * 4 + j];
-      }
+      res.m[i * 4 + j] =
+          a.m[i * 4 + 0] * b.m[0 * 4 + j] + a.m[i * 4 + 1] * b.m[1 * 4 + j] +
+          a.m[i * 4 + 2] * b.m[2 * 4 + j] + a.m[i * 4 + 3] * b.m[3 * 4 + j];
     }
   }
   return res;
@@ -119,5 +144,17 @@ mat4 rotate_x(float angle) {
   res.m[6] = -s;
   res.m[9] = s;
   res.m[10] = c;
+  return res;
+}
+
+mat4 rotate_z(float angle) {
+  mat4 res = identity();
+  float rad = angle * M_PI / 180.0f;
+  float c = cosf(rad);
+  float s = sinf(rad);
+  res.m[4] = c;
+  res.m[6] = -s;
+  res.m[7] = s;
+  res.m[5] = c;
   return res;
 }

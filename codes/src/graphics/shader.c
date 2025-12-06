@@ -66,6 +66,12 @@ void Shader_SetVec3(GLuint program, const char *name, float x, float y,
                     float z) {
   glUniform3f(glGetUniformLocation(program, name), x, y, z);
 }
+
+void Shader_SetVec4(GLuint program, const char *name, float x, float y, float z,
+                    float w) {
+  glUniform4f(glGetUniformLocation(program, name), x, y, z, w);
+}
+
 void Shader_SetMat4(GLuint program, const char *name, const float *value) {
   glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, value);
 }

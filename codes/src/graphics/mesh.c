@@ -1,3 +1,6 @@
+/*
+partially optimized performance
+*/
 #include "mesh.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +35,7 @@ Mesh Mesh_CreatePlane(float size) {
       halfSize,  0.0f, -halfSize, 0.0f, 1.0f, 0.0f, uv11_u, uv11_v, tx, ty, tz,
       halfSize,  0.0f, halfSize,  0.0f, 1.0f, 0.0f, uv10_u, uv10_v, tx, ty, tz,
       -halfSize, 0.0f, halfSize,  0.0f, 1.0f, 0.0f, uv00_u, uv00_v, tx, ty, tz};
-  unsigned int indices[] = {0, 2, 1, 2, 3, 0}; // CCW
+  unsigned int indices[] = {0, 2, 1, 0, 3, 2}; // CCW
 
   mesh.indexCount = 6;
 
@@ -257,10 +260,10 @@ void Mesh_Draw(Mesh *mesh) {
 Mesh Mesh_LoadModel(const char *path) {
   Mesh mesh = {0};
 
+  // for performance, disabled aiProcess_GenSmoothNormals
   const struct aiScene *scene = aiImportFile(
       path, aiProcess_Triangulate | aiProcess_FlipUVs |
-                aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals |
-                aiProcess_JoinIdenticalVertices);
+                aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
 
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
@@ -416,4 +419,104 @@ void Mesh_DrawInstanced(Mesh *mesh, int instanceCount) {
   glDrawElementsInstanced(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0,
                           instanceCount);
   glBindVertexArray(0);
+}
+
+Mesh Mesh_CreateCylinder(float radius, float height, int segments) {
+  Mesh mesh;
+  int vertexCount = (segments + 1) * 2; // Top and bottom rings
+  int indexCount = segments * 6;        // 2 triangles per segment
+
+  float *vertices = (float *)malloc(vertexCount * 11 * sizeof(float));
+  unsigned int *indices =
+      (unsigned int *)malloc(indexCount * sizeof(unsigned int));
+
+  float halfHeight = height / 2.0f;
+
+  for (int i = 0; i <= segments; i++) {
+    float theta = (float)i / (float)segments * 2.0f * M_PI;
+    float x = radius * cosf(theta);
+    float z = radius * sinf(theta);
+
+    // Bottom vertex
+    int baseIdx = i * 2;
+    // Pos
+    vertices[baseIdx * 11 + 0] = x;
+    vertices[baseIdx * 11 + 1] = -halfHeight;
+    vertices[baseIdx * 11 + 2] = z;
+    // Normal (pointing out)
+    vertices[baseIdx * 11 + 3] = x / radius;
+    vertices[baseIdx * 11 + 4] = 0.0f;
+    vertices[baseIdx * 11 + 5] = z / radius;
+    // UV
+    vertices[baseIdx * 11 + 6] = (float)i / (float)segments;
+    vertices[baseIdx * 11 + 7] = 0.0f;
+    // Tangent (approx)
+    vertices[baseIdx * 11 + 8] = -sinf(theta);
+    vertices[baseIdx * 11 + 9] = 0.0f;
+    vertices[baseIdx * 11 + 10] = cosf(theta);
+
+    // Top vertex
+    int topIdx = i * 2 + 1;
+    // Pos
+    vertices[topIdx * 11 + 0] = x;
+    vertices[topIdx * 11 + 1] = halfHeight;
+    vertices[topIdx * 11 + 2] = z;
+    // Normal
+    vertices[topIdx * 11 + 3] = x / radius;
+    vertices[topIdx * 11 + 4] = 0.0f;
+    vertices[topIdx * 11 + 5] = z / radius;
+    // UV
+    vertices[topIdx * 11 + 6] = (float)i / (float)segments;
+    vertices[topIdx * 11 + 7] = 1.0f;
+    // Tangent
+    vertices[topIdx * 11 + 8] = -sinf(theta);
+    vertices[topIdx * 11 + 9] = 0.0f;
+    vertices[topIdx * 11 + 10] = cosf(theta);
+
+    // Indices
+    if (i < segments) {
+      int idx = i * 6;
+      indices[idx + 0] = baseIdx;
+      indices[idx + 1] = baseIdx + 2; // Next bottom
+      indices[idx + 2] = topIdx;
+
+      indices[idx + 3] = topIdx;
+      indices[idx + 4] = baseIdx + 2; // Next bottom
+      indices[idx + 5] = topIdx + 2;  // Next top
+    }
+  }
+
+  mesh.indexCount = indexCount;
+
+  glGenVertexArrays(1, &mesh.VAO);
+  glGenBuffers(1, &mesh.VBO);
+  glGenBuffers(1, &mesh.EBO);
+
+  glBindVertexArray(mesh.VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh.VBO);
+  glBufferData(GL_ARRAY_BUFFER, vertexCount * 11 * sizeof(float), vertices,
+               GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned int),
+               indices, GL_STATIC_DRAW);
+
+  // Attribs
+  int stride = 11 * sizeof(float);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
+                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
+                        (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride,
+                        (void *)(8 * sizeof(float)));
+
+  glBindVertexArray(0);
+  free(vertices);
+  free(indices);
+
+  return mesh;
 }
