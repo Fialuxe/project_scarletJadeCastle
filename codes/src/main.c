@@ -144,6 +144,36 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 #define GROUND_COLOR_G 0.05f
 #define GROUND_COLOR_B 0.05f
 
+// --- Helper Functions ---
+
+// Draws a mesh at a specific position with no rotation/scaling (Identity basis)
+void DrawMeshSimple(GLuint shader, Mesh *mesh, float x, float y, float z) {
+  mat4 model = identity();
+  model.m[12] = x;
+  model.m[13] = y;
+  model.m[14] = z;
+  Shader_SetMat4(shader, "model", model.m);
+  Mesh_Draw(mesh);
+}
+
+// Draws 4 symmetric instances of a mesh:
+// (x, y, z), (-x, y, z), (x, y, -z), (-x, y, -z)
+void DrawSymmetricLayer(GLuint shader, Mesh *mesh, float offsetX, float y,
+                        float offsetZ) {
+  DrawMeshSimple(shader, mesh, -offsetX, y, offsetZ);  // Left Near
+  DrawMeshSimple(shader, mesh, offsetX, y, offsetZ);   // Right Near
+  DrawMeshSimple(shader, mesh, -offsetX, y, -offsetZ); // Left Far
+  DrawMeshSimple(shader, mesh, offsetX, y, -offsetZ);  // Right Far
+  DrawMeshSimple(shader, mesh, offsetX, y, -offsetZ);  // Right Far
+}
+
+// Loads a model and its associated texture
+void LoadModelWithTexture(const char *modelPath, const char *texturePath,
+                          Mesh *outMesh, GLuint *outTexture) {
+  *outMesh = Mesh_LoadModel(modelPath);
+  *outTexture = Texture_Load(texturePath);
+}
+
 int main() {
   // 1. Init Window
   GLFWwindow *window = initWindow(SCR_WIDTH, SCR_HEIGHT, WINDOW_TITLE);
@@ -182,35 +212,43 @@ int main() {
   // Create Grass Mesh
   Mesh grassMesh = Mesh_CreateCube(GRASS_WIDTH, GRASS_HEIGHT, GRASS_DEPTH);
 
-  // Load Gazebo Model
-  Mesh gazeboMesh = Mesh_LoadModel("../materials/gazebo/rgazebo_basic_pbr.fbx");
-  // Load Gazebo Texture
-  GLuint gazeboTexture = Texture_Load("../materials/gazebo/shaded.png");
+  // Load Gazebo Model & Texture
+  Mesh gazeboMesh;
+  GLuint gazeboTexture;
+  LoadModelWithTexture("../materials/gazebo/rgazebo_basic_pbr.fbx",
+                       "../materials/gazebo/shaded.png", &gazeboMesh,
+                       &gazeboTexture);
 
   // Create Border Mesh (Curb)
   Mesh borderMesh = Mesh_CreateCube(BORDER_WIDTH, BORDER_HEIGHT, BORDER_DEPTH);
 
-  // Load Bridge Model
-  Mesh bridgeMesh = Mesh_LoadModel("../materials/bridge/bridge_pbr.fbx");
-  // Load Bridge Texture
-  GLuint bridgeTexture =
-      Texture_Load("../materials/bridge/texture_diffuse.png");
+  // Load Bridge Model & Texture
+  Mesh bridgeMesh;
+  GLuint bridgeTexture;
+  LoadModelWithTexture("../materials/bridge/bridge_pbr.fbx",
+                       "../materials/bridge/texture_diffuse.png", &bridgeMesh,
+                       &bridgeTexture);
 
-  // Load Halfpipe Model
-  Mesh halfpipeMesh = Mesh_LoadModel("../materials/halfpipe/halfpipe.fbx");
-  // Load Halfpipe Texture
-  GLuint halfpipeTexture =
-      Texture_Load("../materials/halfpipe/halfpipe_texture.png");
+  // Load Halfpipe Model & Texture
+  Mesh halfpipeMesh;
+  GLuint halfpipeTexture;
+  LoadModelWithTexture("../materials/halfpipe/halfpipe.fbx",
+                       "../materials/halfpipe/halfpipe_texture.png",
+                       &halfpipeMesh, &halfpipeTexture);
 
-  // Load Flower Model
-  Mesh flowerMesh = Mesh_LoadModel("../materials/flower/rflower_pbr.fbx");
-  // Load Flower Texture
-  GLuint flowerTexture = Texture_Load("../materials/flower/shaded.png");
+  // Load Flower Model & Texture
+  Mesh flowerMesh;
+  GLuint flowerTexture;
+  LoadModelWithTexture("../materials/flower/rflower_pbr.fbx",
+                       "../materials/flower/shaded.png", &flowerMesh,
+                       &flowerTexture);
 
-  // Load White Flower Model
-  Mesh flowerWMesh = Mesh_LoadModel("../materials/flower_w/rflower_w_pbr.fbx");
-  // Load White Flower Texture
-  GLuint flowerWTexture = Texture_Load("../materials/flower_w/shaded.png");
+  // Load White Flower Model & Texture
+  Mesh flowerWMesh;
+  GLuint flowerWTexture;
+  LoadModelWithTexture("../materials/flower_w/rflower_w_pbr.fbx",
+                       "../materials/flower_w/shaded.png", &flowerWMesh,
+                       &flowerWTexture);
 
   // Load Skybox Texture
   GLuint skyboxTexture = Texture_Load(
@@ -218,19 +256,23 @@ int main() {
   Mesh skyboxMesh = Mesh_CreateCube(100.0f, 100.0f, 100.0f);
 
   // Load Hedge Model & Texture
-  Mesh hedgeMesh =
-      Mesh_LoadModel("../materials/hedge/source/hedge-obj/rhedgeTextured.obj");
-  GLuint hedgeTexture = Texture_Load(
-      "../materials/hedge/source/hedge-obj/hedge-displacement-texture.jpg");
+  Mesh hedgeMesh;
+  GLuint hedgeTexture;
+  LoadModelWithTexture(
+      "../materials/hedge/source/hedge-obj/rhedgeTextured.obj",
+      "../materials/hedge/source/hedge-obj/hedge-displacement-texture.jpg",
+      &hedgeMesh, &hedgeTexture);
 
   // Create God Ray Mesh (Cylinder)
   // Radius ~0.5, Height ~5.0 (long enough to fade out)
   Mesh godrayMesh = Mesh_CreateCylinder(0.2f, 7.5f, 32);
 
   // Load Castle Model & Texture
-  Mesh castleMesh = Mesh_LoadModel("../materials/castle/rcastle.fbx");
-  GLuint castleTexture =
-      Texture_Load("../materials/castle/texture_diffuse.png");
+  Mesh castleMesh;
+  GLuint castleTexture;
+  LoadModelWithTexture("../materials/castle/rcastle.fbx",
+                       "../materials/castle/texture_diffuse.png", &castleMesh,
+                       &castleTexture);
 
   // --- Setup Flower Instances ---
   float flowerStartZ = 6.0f;
@@ -559,37 +601,8 @@ int main() {
         // Bind Asphalt Normal Map
         glBindTexture(GL_TEXTURE_2D, asphaltNormalMap);
 
-        // Left Road (Near)
-        mat4 modelRoad1 = identity();
-        modelRoad1.m[12] = -ROAD_OFFSET_X;
-        modelRoad1.m[13] = -1.0f;
-        modelRoad1.m[14] = SECTION_OFFSET_Z;
-        Shader_SetMat4(shader, "model", modelRoad1.m);
-        Mesh_Draw(&roadMesh);
-
-        // Right Road (Near)
-        mat4 modelRoad2 = identity();
-        modelRoad2.m[12] = ROAD_OFFSET_X;
-        modelRoad2.m[13] = -1.0f;
-        modelRoad2.m[14] = SECTION_OFFSET_Z;
-        Shader_SetMat4(shader, "model", modelRoad2.m);
-        Mesh_Draw(&roadMesh);
-
-        // Left Road (Far)
-        mat4 modelRoad3 = identity();
-        modelRoad3.m[12] = -ROAD_OFFSET_X;
-        modelRoad3.m[13] = -1.0f;
-        modelRoad3.m[14] = -SECTION_OFFSET_Z;
-        Shader_SetMat4(shader, "model", modelRoad3.m);
-        Mesh_Draw(&roadMesh);
-
-        // Right Road (Far)
-        mat4 modelRoad4 = identity();
-        modelRoad4.m[12] = ROAD_OFFSET_X;
-        modelRoad4.m[13] = -1.0f;
-        modelRoad4.m[14] = -SECTION_OFFSET_Z;
-        Shader_SetMat4(shader, "model", modelRoad4.m);
-        Mesh_Draw(&roadMesh);
+        DrawSymmetricLayer(shader, &roadMesh, ROAD_OFFSET_X, -1.0f,
+                           SECTION_OFFSET_Z);
       }
 
       // --- Draw Road Borders (Curbs) ---
@@ -602,39 +615,15 @@ int main() {
       // Bind default normal map (flat)
       glBindTexture(GL_TEXTURE_2D, normalMap);
 
-      float borderY = BORDER_Y;
-      float borderZ_Near = SECTION_OFFSET_Z;
-      float borderZ_Far = -SECTION_OFFSET_Z;
-
-      // X positions for borders
-      float borderX[] = {-BORDER_X_INNER, -BORDER_X_OUTER, BORDER_X_INNER,
-                         BORDER_X_OUTER};
-
-      // Draw Near Borders
-      for (int i = 0; i < 4; i++) {
-        mat4 modelBorder = identity();
-        modelBorder.m[12] = borderX[i];
-        modelBorder.m[13] = borderY;
-        modelBorder.m[14] = borderZ_Near;
-        Shader_SetMat4(shader, "model", modelBorder.m);
-        Mesh_Draw(&borderMesh);
-      }
-
-      // Draw Far Borders
-      for (int i = 0; i < 4; i++) {
-        mat4 modelBorder = identity();
-        modelBorder.m[12] = borderX[i];
-        modelBorder.m[13] = borderY;
-        modelBorder.m[14] = borderZ_Far;
-        Shader_SetMat4(shader, "model", modelBorder.m);
-        Mesh_Draw(&borderMesh);
-      }
+      // Draw Inner and Outer Borders symmetrically
+      DrawSymmetricLayer(shader, &borderMesh, BORDER_X_INNER, BORDER_Y,
+                         SECTION_OFFSET_Z);
+      DrawSymmetricLayer(shader, &borderMesh, BORDER_X_OUTER, BORDER_Y,
+                         SECTION_OFFSET_Z);
 
       // --- Draw Outer Floor & Borders (Next to Grass) ---
+      // --- Draw Outer Floor & Borders (Next to Grass) ---
       if (pass != 0) {
-        // Outer Floor (Left & Right)
-        float outerFloorX[] = {-OUTER_FLOOR_OFFSET_X, OUTER_FLOOR_OFFSET_X};
-
         // Use Floor Material
         Shader_SetVec3(shader, "objectColor", 0.4f, 0.4f, 0.45f); // Stone Grey
         Shader_SetFloat(shader, "shininess", 32.0f);
@@ -643,55 +632,23 @@ int main() {
         Shader_SetInt(shader, "useNormalMap", 1);
         glBindTexture(GL_TEXTURE_2D, normalMap);
 
-        for (int i = 0; i < 2; i++) {
-          // Near
-          mat4 modelFn = identity();
-          modelFn.m[12] = outerFloorX[i];
-          modelFn.m[13] = -1.0f;
-          modelFn.m[14] = SECTION_OFFSET_Z;
-          Shader_SetMat4(shader, "model", modelFn.m);
-          Mesh_Draw(&floorMesh);
-
-          // Far
-          mat4 modelFf = identity();
-          modelFf.m[12] = outerFloorX[i];
-          modelFf.m[13] = -1.0f;
-          modelFf.m[14] = -SECTION_OFFSET_Z;
-          Shader_SetMat4(shader, "model", modelFf.m);
-          Mesh_Draw(&floorMesh);
-        }
-
-        // Outer Borders
-        float outerBorderOffset = 1.925f;
-        float outerBorderX[] = {
-            -OUTER_FLOOR_OFFSET_X - outerBorderOffset, // Left Outer
-            -OUTER_FLOOR_OFFSET_X + outerBorderOffset, // Left Inner
-            OUTER_FLOOR_OFFSET_X - outerBorderOffset,  // Right Inner
-            OUTER_FLOOR_OFFSET_X + outerBorderOffset   // Right Outer
-        };
+        // Draw Outer Floor
+        DrawSymmetricLayer(shader, &floorMesh, OUTER_FLOOR_OFFSET_X, -1.0f,
+                           SECTION_OFFSET_Z);
 
         // Use Border Material
         Shader_SetVec3(shader, "objectColor", 0.7f, 0.7f, 0.7f);
         Shader_SetFloat(shader, "shininess", 32.0f);
         Shader_SetFloat(shader, "specularIntensity", 0.5f);
 
-        for (int i = 0; i < 4; i++) {
-          // Near
-          mat4 modelBn = identity();
-          modelBn.m[12] = outerBorderX[i];
-          modelBn.m[13] = BORDER_Y;
-          modelBn.m[14] = SECTION_OFFSET_Z;
-          Shader_SetMat4(shader, "model", modelBn.m);
-          Mesh_Draw(&borderMesh);
-
-          // Far
-          mat4 modelBf = identity();
-          modelBf.m[12] = outerBorderX[i];
-          modelBf.m[13] = BORDER_Y;
-          modelBf.m[14] = -SECTION_OFFSET_Z;
-          Shader_SetMat4(shader, "model", modelBf.m);
-          Mesh_Draw(&borderMesh);
-        }
+        // Draw Outer Borders
+        float outerBorderOffset = 1.925f;
+        DrawSymmetricLayer(shader, &borderMesh,
+                           OUTER_FLOOR_OFFSET_X - outerBorderOffset, BORDER_Y,
+                           SECTION_OFFSET_Z);
+        DrawSymmetricLayer(shader, &borderMesh,
+                           OUTER_FLOOR_OFFSET_X + outerBorderOffset, BORDER_Y,
+                           SECTION_OFFSET_Z);
       }
 
       // --- Draw Bridge ---
@@ -750,14 +707,6 @@ int main() {
         Shader_SetMat4(shader, "model", modelHalfpipe.m);
         Mesh_Draw(&halfpipeMesh);
       }
-      for (int i = 0; i < 4; i++) {
-        mat4 modelBorder = identity();
-        modelBorder.m[12] = borderX[i];
-        modelBorder.m[13] = borderY;
-        modelBorder.m[14] = borderZ_Far;
-        Shader_SetMat4(shader, "model", modelBorder.m);
-        Mesh_Draw(&borderMesh);
-      }
 
       // --- Draw Grass Fields ---
       // NOTE: Disable grass fields in reflection pass to prevent obstruction.
@@ -795,72 +744,13 @@ int main() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, grassTexture);
 
-        // Left Grass (Near)
-        mat4 modelGrass1 = identity();
-        modelGrass1.m[12] = -GRASS_OFFSET_X;
-        modelGrass1.m[13] = -1.0f;
-        modelGrass1.m[14] = SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelGrass1.m);
-        Mesh_Draw(&grassMesh);
+        // Draw Inner Grass
+        DrawSymmetricLayer(grassShader, &grassMesh, GRASS_OFFSET_X, -1.0f,
+                           SECTION_OFFSET_Z);
 
-        // Right Grass (Near)
-        mat4 modelGrass2 = identity();
-        modelGrass2.m[12] = GRASS_OFFSET_X;
-        modelGrass2.m[13] = -1.0f;
-        modelGrass2.m[14] = SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelGrass2.m);
-        Mesh_Draw(&grassMesh);
-
-        // Left Grass (Far)
-        mat4 modelGrass3 = identity();
-        modelGrass3.m[12] = -GRASS_OFFSET_X;
-        modelGrass3.m[13] = -1.0f;
-        modelGrass3.m[14] = -SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelGrass3.m);
-        Mesh_Draw(&grassMesh);
-
-        // Right Grass (Far)
-        mat4 modelGrass4 = identity();
-        modelGrass4.m[12] = GRASS_OFFSET_X;
-        modelGrass4.m[13] = -1.0f;
-        modelGrass4.m[14] = -SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelGrass4.m);
-        Mesh_Draw(&grassMesh);
-
-        // --- Draw Outer Grass (Next to Outer Floor) ---
-        // Uses global OUTER_GRASS_OFFSET_X (53.0f)
-
-        // Left Outer Grass (Near)
-        mat4 modelOG1 = identity();
-        modelOG1.m[12] = -OUTER_GRASS_OFFSET_X;
-        modelOG1.m[13] = -1.0f;
-        modelOG1.m[14] = SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelOG1.m);
-        Mesh_Draw(&grassMesh);
-
-        // Right Outer Grass (Near)
-        mat4 modelOG2 = identity();
-        modelOG2.m[12] = OUTER_GRASS_OFFSET_X;
-        modelOG2.m[13] = -1.0f;
-        modelOG2.m[14] = SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelOG2.m);
-        Mesh_Draw(&grassMesh);
-
-        // Left Outer Grass (Far)
-        mat4 modelOG3 = identity();
-        modelOG3.m[12] = -OUTER_GRASS_OFFSET_X;
-        modelOG3.m[13] = -1.0f;
-        modelOG3.m[14] = -SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelOG3.m);
-        Mesh_Draw(&grassMesh);
-
-        // Right Outer Grass (Far)
-        mat4 modelOG4 = identity();
-        modelOG4.m[12] = OUTER_GRASS_OFFSET_X;
-        modelOG4.m[13] = -1.0f;
-        modelOG4.m[14] = -SECTION_OFFSET_Z;
-        Shader_SetMat4(grassShader, "model", modelOG4.m);
-        Mesh_Draw(&grassMesh);
+        // Draw Outer Grass
+        DrawSymmetricLayer(grassShader, &grassMesh, OUTER_GRASS_OFFSET_X, -1.0f,
+                           SECTION_OFFSET_Z);
       }
 
       // Restore Shader for next objects (if any rely on it being active, though
