@@ -156,6 +156,7 @@ typedef struct _XComposeStatus {
 
 typedef struct _XRegion *Region;
 typedef int XContext;
+extern XContext XUniqueContext(void);
 
 typedef struct {
   unsigned long id;

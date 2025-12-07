@@ -344,6 +344,7 @@ static void createKeyTables(void) {
   memset(_glfw.x11.keycodes, -1, sizeof(_glfw.x11.keycodes));
   memset(_glfw.x11.scancodes, -1, sizeof(_glfw.x11.scancodes));
 
+#if 0
   if (_glfw.x11.xkb.available) {
     // Use XKB to determine physical key locations independently of the
     // current keyboard layout
@@ -520,7 +521,9 @@ static void createKeyTables(void) {
     XkbFreeNames(desc, XkbKeyNamesMask, True);
     XkbFreeKeyboard(desc, 0, True);
   } else
-    XDisplayKeycodes(_glfw.x11.display, &scancodeMin, &scancodeMax);
+#endif
+  XDisplayKeycodes(_glfw.x11.display, &scancodeMin, &scancodeMax);
+  XDisplayKeycodes(_glfw.x11.display, &scancodeMin, &scancodeMax);
 
   int width;
   KeySym *keysyms = XGetKeyboardMapping(_glfw.x11.display, scancodeMin,
@@ -1205,6 +1208,7 @@ void _glfwInputErrorX11(int error, const char *message) {
 Cursor _glfwCreateNativeCursorX11(const GLFWimage *image, int xhot, int yhot) {
   Cursor cursor;
 
+#if 0
   if (!_glfw.x11.xcursor.handle)
     return None;
 
@@ -1227,6 +1231,12 @@ Cursor _glfwCreateNativeCursorX11(const GLFWimage *image, int xhot, int yhot) {
               ((unsigned char)((source[1] * alpha) / 255) << 8) |
               ((unsigned char)((source[2] * alpha) / 255) << 0);
   }
+
+  cursor = XcursorImageLoadCursor(_glfw.x11.display, native);
+  XcursorImageDestroy(native);
+#else
+  return None;
+#endif
 
   cursor = XcursorImageLoadCursor(_glfw.x11.display, native);
   XcursorImageDestroy(native);
