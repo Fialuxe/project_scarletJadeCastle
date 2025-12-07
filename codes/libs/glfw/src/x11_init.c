@@ -1237,11 +1237,6 @@ Cursor _glfwCreateNativeCursorX11(const GLFWimage *image, int xhot, int yhot) {
 #else
   return None;
 #endif
-
-  cursor = XcursorImageLoadCursor(_glfw.x11.display, native);
-  XcursorImageDestroy(native);
-
-  return cursor;
 }
 
 //////////////////////////////////////////////////////////////////////////
