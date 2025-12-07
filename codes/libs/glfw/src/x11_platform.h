@@ -103,6 +103,69 @@
 #include <X11/Xlib.h>
 #include <X11/Xresource.h>
 #include <X11/keysym.h>
+
+// Missing X11 types from Xutil.h
+typedef struct {
+  char *res_name;
+  char *res_class;
+} XClassHint;
+
+typedef struct {
+  long flags;
+  int x, y;
+  int width, height;
+  int min_width, min_height;
+  int max_width, max_height;
+  int width_inc, height_inc;
+  struct {
+    int x;
+    int y;
+  } min_aspect, max_aspect;
+  int base_width, base_height;
+  int win_gravity;
+} XSizeHints;
+
+typedef struct {
+  long flags;
+  Bool input;
+  int initial_state;
+  Pixmap icon_pixmap;
+  Window icon_window;
+  int icon_x, icon_y;
+  Pixmap icon_mask;
+  XID window_group;
+} XWMHints;
+
+typedef struct {
+  Visual *visual;
+  VisualID visualid;
+  int screen;
+  int depth;
+  int class;
+  unsigned long red_mask;
+  unsigned long green_mask;
+  unsigned long blue_mask;
+  int colormap_size;
+  int bits_per_rgb;
+} XVisualInfo;
+
+typedef struct _XComposeStatus {
+  XPointer compose_ptr;
+  int chars_matched;
+} XComposeStatus;
+
+typedef struct _XRegion *Region;
+typedef int XContext;
+
+typedef struct {
+  unsigned long id;
+  int type;
+  int depth;
+  XVisualInfo direct;
+  Colormap colormap;
+} XRenderPictFormat;
+
+// The Xcursor extension provides color cursor images
 // #include <X11/Xcursor/Xcursor.h>
 typedef struct XcursorImage XcursorImage;
 
