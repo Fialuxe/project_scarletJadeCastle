@@ -153,7 +153,38 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 #define GROUND_COLOR_G 0.05f
 #define GROUND_COLOR_B 0.05f
 
+// Bridge Physics Constants
+#define BRIDGE_Z_START -1.5f
+#define BRIDGE_Z_END 1.5f
+#define BRIDGE_PEAK_Y 2.5f
+#define BRIDGE_WALK_WIDTH 1.5f
+
 // --- Helper Functions ---
+
+// Calculates the ground height at a given position (handling bridge arch)
+float GetGroundHeight(float x, float z) {
+  // Check if on bridge
+  if (z > BRIDGE_Z_START && z < BRIDGE_Z_END) {
+    // Simple parabolic arch: y = Peak - k * z^2
+    // We want y = WORLD_MIN_Y at z = +/- 2.0
+    // 1.5 = 2.5 - k * (2.0)^2
+    // -1.0 = -k * 4.0
+    // k = 0.25
+    float k = 0.25f;
+    float bridgeHeight = BRIDGE_PEAK_Y - k * z * z;
+    return (bridgeHeight > WORLD_MIN_Y) ? bridgeHeight : WORLD_MIN_Y;
+  }
+  return WORLD_MIN_Y;
+}
+
+// Calculates the walkable width at a given Z position
+float GetWalkableWidth(float z) {
+  // Check if on bridge
+  if (z > BRIDGE_Z_START && z < BRIDGE_Z_END) {
+    return BRIDGE_WALK_WIDTH;
+  }
+  return WORLD_LIMIT_X;
+}
 
 // Draws a mesh at a specific position with no rotation/scaling (Identity basis)
 void DrawMeshSimple(GLuint shader, Mesh *mesh, float x, float y, float z) {
@@ -477,8 +508,8 @@ int main() {
     Input_GetMouseDelta(&dx, &dy);
     Camera_ProcessMouseMovement(&camera, dx, dy);
 
-    // Store current Y position to prevent WASD from affecting vertical position
-    float savedY = camera.Position.y;
+    // Store current position before movement for collision logic
+    vec3 prevPos = camera.Position;
 
     // WASD movement (horizontal only)
     if (Input_GetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -490,31 +521,45 @@ int main() {
     if (Input_GetKey(window, GLFW_KEY_D) == GLFW_PRESS)
       Camera_ProcessKeyboard(&camera, CAM_RIGHT, deltaTime);
 
-    // Restore Y position after WASD movement (lock to XZ plane)
-    camera.Position.y = savedY;
-
-    // Space/Shift for vertical movement only
-    if (Input_GetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-      camera.Position.y += 2.5f * deltaTime; // Move Up
-    if (Input_GetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-      camera.Position.y -= 2.5f * deltaTime; // Move Down
-
     // --- Apply World Boundaries (Collision) ---
-    // Clamp X
-    if (camera.Position.x > WORLD_LIMIT_X)
-      camera.Position.x = WORLD_LIMIT_X;
-    if (camera.Position.x < -WORLD_LIMIT_X)
-      camera.Position.x = -WORLD_LIMIT_X;
 
-    // Clamp Z
+    // 1. Get Limits
+    float currentWalkableWidth = GetWalkableWidth(camera.Position.z);
+    float currentGroundHeight =
+        GetGroundHeight(camera.Position.x, camera.Position.z);
+
+    // 2. Check Bridge Entry (Prevent Snapping)
+    // If we are wider than the new width, we hit a wall.
+    if (fabs(camera.Position.x) > currentWalkableWidth) {
+      // Check if we entered a narrower zone (e.g. from Road to Bridge)
+      float prevWalkableWidth = GetWalkableWidth(prevPos.z);
+
+      if (currentWalkableWidth < prevWalkableWidth) {
+        // We are trying to enter a narrower zone but are too wide.
+        // Block Z movement (Hit the "bridge wall")
+        camera.Position.z = prevPos.z;
+
+        // Re-evaluate width for the reverted Z
+        currentWalkableWidth = GetWalkableWidth(camera.Position.z);
+        currentGroundHeight =
+            GetGroundHeight(camera.Position.x, camera.Position.z);
+      }
+    }
+
+    // 3. Clamp X (Standard Boundary)
+    if (camera.Position.x > currentWalkableWidth)
+      camera.Position.x = currentWalkableWidth;
+    if (camera.Position.x < -currentWalkableWidth)
+      camera.Position.x = -currentWalkableWidth;
+
+    // 4. Clamp Z
     if (camera.Position.z > WORLD_LIMIT_Z)
       camera.Position.z = WORLD_LIMIT_Z;
     if (camera.Position.z < -WORLD_LIMIT_Z)
       camera.Position.z = -WORLD_LIMIT_Z;
 
-    // Clamp Y (Ground Collision)
-    if (camera.Position.y < WORLD_MIN_Y)
-      camera.Position.y = WORLD_MIN_Y;
+    // 5. Enforce Ground Height (No Flying)
+    camera.Position.y = currentGroundHeight;
 
     // Window Size
     int width, height;
