@@ -4,6 +4,12 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -Wno-deprecated-declarations -Isrc
 TARGET = aincrad_floor
 
+# GLFW Configuration
+GLFW_DIR = libs/glfw
+GLFW_BUILD_DIR = $(GLFW_DIR)/build
+GLFW_LIB = $(GLFW_BUILD_DIR)/src/libglfw3.a
+GLFW_INCLUDE = -I$(GLFW_DIR)/include
+
 # Source files
 SRCS = src/main.c \
        src/core/window.c src/core/input.c src/core/camera.c \
@@ -15,20 +21,44 @@ SRCS = src/main.c \
 UNAME_S := $(shell uname -s)
 
 # Add assimp include and lib paths for macOS
-# Work only on my macOS...? (homebrew, assimp)
-ifeq ($(UNAME_S), Darwin)
-	# Mac OS
-	CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/Cellar/assimp/6.0.2/include
-	LIBS = -L/opt/homebrew/lib -L/opt/homebrew/Cellar/assimp/6.0.2/lib -framework OpenGL -framework Cocoa -framework IOKit -lglfw -lassimp
+ifneq ($(wildcard /opt/homebrew/include),)
+    # Homebrew on Apple Silicon
+    CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/Cellar/assimp/6.0.2/include
+    LIBS_PATH = -L/opt/homebrew/lib -L/opt/homebrew/Cellar/assimp/6.0.2/lib
 else
-	# Linux / Other
-	LIBS = -lGL -lglfw -lm -ldl
+    # Default or Linux
+    LIBS_PATH =
 endif
 
-all: $(TARGET)
+# Common Libs
+COMMON_LIBS = -lm
 
-$(TARGET): $(SRCS)
+ifeq ($(UNAME_S), Darwin)
+	# Mac OS
+	CFLAGS += $(GLFW_INCLUDE)
+	LIBS = $(LIBS_PATH) $(GLFW_LIB) -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore -lassimp $(COMMON_LIBS)
+else
+	# Linux / Other
+	CFLAGS += $(GLFW_INCLUDE)
+	# Link static GLFW and its dependencies (X11, etc.)
+	LIBS = $(LIBS_PATH) $(GLFW_LIB) -lGL -ldl -lpthread -lX11 -lXrandr -lXinerama -lXi -lXcursor -lassimp $(COMMON_LIBS)
+endif
+
+all: $(GLFW_LIB) $(TARGET)
+
+# Build GLFW
+$(GLFW_LIB):
+	@echo "Building GLFW..."
+	mkdir -p $(GLFW_BUILD_DIR)
+	cd $(GLFW_BUILD_DIR) && cmake .. -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF && make
+
+$(TARGET): $(SRCS) $(GLFW_LIB)
 	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LIBS)
 
 clean:
 	rm -f $(TARGET)
+
+clean_glfw:
+	rm -rf $(GLFW_BUILD_DIR)
+
+clean_all: clean clean_glfw
