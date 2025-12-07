@@ -37,7 +37,16 @@
 typedef struct XcursorImage XcursorImage;
 
 // The XRandR extension provides mode setting and gamma control
-#include <X11/extensions/Xrandr.h>
+// #include <X11/extensions/Xrandr.h>
+typedef unsigned long RRCrtc;
+typedef unsigned long RROutput;
+typedef unsigned long RRMode;
+typedef int Rotation;
+typedef struct XRRCrtcGamma XRRCrtcGamma;
+typedef struct XRRCrtcInfo XRRCrtcInfo;
+typedef struct XRROutputInfo XRROutputInfo;
+typedef struct XRRScreenResources XRRScreenResources;
+typedef struct XRRModeInfo XRRModeInfo;
 
 // The Xkb extension provides improved keyboard support
 #include <X11/XKBlib.h>

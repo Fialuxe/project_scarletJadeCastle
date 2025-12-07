@@ -746,6 +746,7 @@ static GLFWbool initExtensions(void) {
     }
   }
 
+#if 0
 #if defined(__CYGWIN__)
   _glfw.x11.randr.handle = _glfwPlatformLoadModule("libXrandr-2.so");
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
@@ -843,6 +844,7 @@ static GLFWbool initExtensions(void) {
   if (_glfw.x11.randr.available && !_glfw.x11.randr.monitorBroken) {
     XRRSelectInput(_glfw.x11.display, _glfw.x11.root, RROutputChangeNotifyMask);
   }
+#endif
 
 #if 0
 #if defined(__CYGWIN__)
