@@ -129,6 +129,19 @@
 #define PBaseSize (1L << 8)
 #define PWinGravity (1L << 9)
 
+// Visual Mask defines
+#define VisualNoMask 0x0
+#define VisualIDMask 0x1
+#define VisualScreenMask 0x2
+#define VisualDepthMask 0x4
+#define VisualClassMask 0x8
+#define VisualRedMaskMask 0x10
+#define VisualGreenMaskMask 0x20
+#define VisualBlueMaskMask 0x40
+#define VisualColormapSizeMask 0x80
+#define VisualBitsPerRGBMask 0x100
+#define VisualAllMask 0x1FF
+
 typedef struct {
   char *res_name;
   char *res_class;
