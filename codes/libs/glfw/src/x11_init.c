@@ -1206,7 +1206,6 @@ void _glfwInputErrorX11(int error, const char *message) {
 // Creates a native cursor object from the specified image and hotspot
 //
 Cursor _glfwCreateNativeCursorX11(const GLFWimage *image, int xhot, int yhot) {
-  Cursor cursor;
 
 #if 0
   if (!_glfw.x11.xcursor.handle)

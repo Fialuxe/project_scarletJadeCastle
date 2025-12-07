@@ -37,6 +37,9 @@
 
 // Check whether the display mode should be included in enumeration
 //
+#if 0
+// Check whether the display mode should be included in enumeration
+//
 static GLFWbool modeIsGood(const XRRModeInfo *mi) {
   return (mi->modeFlags & RR_Interlace) == 0;
 }
@@ -83,6 +86,7 @@ static GLFWvidmode vidmodeFromModeInfo(const XRRModeInfo *mi,
 
   return mode;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////                       GLFW internal API                      //////
@@ -147,8 +151,7 @@ void _glfwPollMonitorsX11(void) {
                 XRRFreeOutputInfo(oi);
                 continue;
             }
-
-            if (ci->rotation == RR_Rotate_90 || ci->rotation == RR_Rotate_270)
+     if (ci->rotation == RR_Rotate_90 || ci->rotation == RR_Rotate_270)
             {
                 widthMM  = oi->mm_height;
                 heightMM = oi->mm_width;
@@ -540,8 +543,8 @@ GLFWbool _glfwGetGammaRampX11(_GLFWmonitor *monitor, GLFWgammaramp *ramp) {
         return GLFW_TRUE;
     }
     else
-#endif if (_glfw.x11.vidmode.available)
-  {
+#endif
+  if (_glfw.x11.vidmode.available) {
     int size;
     XF86VidModeGetGammaRampSize(_glfw.x11.display, _glfw.x11.screen, &size);
 
@@ -550,8 +553,7 @@ GLFWbool _glfwGetGammaRampX11(_GLFWmonitor *monitor, GLFWgammaramp *ramp) {
     XF86VidModeGetGammaRamp(_glfw.x11.display, _glfw.x11.screen, ramp->size,
                             ramp->red, ramp->green, ramp->blue);
     return GLFW_TRUE;
-  }
-  else {
+  } else {
     _glfwInputError(GLFW_PLATFORM_ERROR,
                     "X11: Gamma ramp access not supported by server");
     return GLFW_FALSE;
@@ -579,14 +581,13 @@ void _glfwSetGammaRampX11(_GLFWmonitor *monitor, const GLFWgammaramp *ramp) {
         XRRFreeGamma(gamma);
     }
     else
-#endif if (_glfw.x11.vidmode.available)
-  {
+#endif
+  if (_glfw.x11.vidmode.available) {
     XF86VidModeSetGammaRamp(_glfw.x11.display, _glfw.x11.screen, ramp->size,
                             (unsigned short *)ramp->red,
                             (unsigned short *)ramp->green,
                             (unsigned short *)ramp->blue);
-  }
-  else {
+  } else {
     _glfwInputError(GLFW_PLATFORM_ERROR,
                     "X11: Gamma ramp access not supported by server");
   }
