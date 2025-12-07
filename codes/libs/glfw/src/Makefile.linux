@@ -1,0 +1,23 @@
+CC = gcc
+CFLAGS = -c -O2 -Wall -D_GLFW_X11 -I../include
+AR = ar
+ARFLAGS = rcs
+
+SRCS = context.c init.c input.c monitor.c platform.c vulkan.c window.c \
+       x11_init.c x11_monitor.c x11_window.c xkb_unicode.c \
+       posix_module.c posix_poll.c posix_thread.c posix_time.c \
+       linux_joystick.c glx_context.c egl_context.c osmesa_context.c \
+       null_init.c null_joystick.c null_monitor.c null_window.c
+
+OBJS = $(SRCS:.c=.o)
+TARGET_DIR = ../build/src
+TARGET = $(TARGET_DIR)/libglfw3.a
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	mkdir -p $(TARGET_DIR)
+	$(AR) $(ARFLAGS) $@ $^
+
+clean:
+	rm -f $(OBJS) $(TARGET)

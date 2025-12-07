@@ -48,9 +48,14 @@ all: $(GLFW_LIB) $(TARGET)
 
 # Build GLFW
 $(GLFW_LIB):
-	@echo "Building GLFW..."
+ifeq ($(UNAME_S), Darwin)
+	@echo "Building GLFW (macOS)..."
 	mkdir -p $(GLFW_BUILD_DIR)
 	cd $(GLFW_BUILD_DIR) && cmake .. -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF && make
+else
+	@echo "Building GLFW (Linux)..."
+	cd $(GLFW_DIR)/src && make -f Makefile.linux
+endif
 
 $(TARGET): $(SRCS) $(GLFW_LIB)
 	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LIBS)
