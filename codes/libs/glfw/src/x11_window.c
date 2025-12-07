@@ -965,6 +965,7 @@ static void processEvent(XEvent *event) {
     }
 #endif
 
+#if 0
   if (_glfw.x11.xkb.available) {
     if (event->type == _glfw.x11.xkb.eventBase + XkbEventCode) {
       if (((XkbEvent *)event)->any.xkb_type == XkbStateNotify &&
@@ -975,7 +976,9 @@ static void processEvent(XEvent *event) {
       return;
     }
   }
+#endif
 
+#if 0
   if (event->type == GenericEvent) {
     if (_glfw.x11.xi.available) {
       _GLFWwindow *window = _glfw.x11.disabledCursorWindow;
@@ -1007,6 +1010,7 @@ static void processEvent(XEvent *event) {
 
     return;
   }
+#endif
 
   if (event->type == SelectionRequest) {
     handleSelectionRequest(event);
@@ -2214,565 +2218,575 @@ void _glfwSetWindowFloatingX11(_GLFWwindow *window, GLFWbool enabled) {
 
     if (states)
       XFree(states);
-  }
+    void _glfwSetWindowMousePassthroughX11(_GLFWwindow * window,
+                                           GLFWbool enabled) {
+#if 0
+    if (window->x11.transparent)
+    {
+        if (!_glfw.x11.xshape.available)
+        {
+            _glfwInputError(GLFW_FEATURE_UNAVAILABLE,
+                            "X11: The Shape extension is not available");
+            return;
+        }
 
-  XFlush(_glfw.x11.display);
-}
-
-void _glfwSetWindowMousePassthroughX11(_GLFWwindow *window, GLFWbool enabled) {
-  if (!_glfw.x11.xshape.available)
-    return;
-
-  if (enabled) {
-    Region region = XCreateRegion();
-    XShapeCombineRegion(_glfw.x11.display, window->x11.handle, ShapeInput, 0, 0,
-                        region, ShapeSet);
-    XDestroyRegion(region);
-  } else {
-    XShapeCombineMask(_glfw.x11.display, window->x11.handle, ShapeInput, 0, 0,
-                      None, ShapeSet);
-  }
-}
-
-float _glfwGetWindowOpacityX11(_GLFWwindow *window) {
-  float opacity = 1.f;
-
-  if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.NET_WM_CM_Sx)) {
-    CARD32 *value = NULL;
-
-    if (_glfwGetWindowPropertyX11(window->x11.handle,
-                                  _glfw.x11.NET_WM_WINDOW_OPACITY, XA_CARDINAL,
-                                  (unsigned char **)&value)) {
-      opacity = (float)(*value / (double)0xffffffffu);
+        XShapeCombineRegion(_glfw.x11.display, window->x11.handle, ShapeInput, 0, 0,
+                            NULL, ShapeSet);
+        XShapeCombineMask(_glfw.x11.display, window->x11.handle, ShapeInput, 0, 0,
+                          None, ShapeSet);
     }
-
-    if (value)
-      XFree(value);
-  }
-
-  return opacity;
-}
-
-void _glfwSetWindowOpacityX11(_GLFWwindow *window, float opacity) {
-  const CARD32 value = (CARD32)(0xffffffffu * (double)opacity);
-  XChangeProperty(_glfw.x11.display, window->x11.handle,
-                  _glfw.x11.NET_WM_WINDOW_OPACITY, XA_CARDINAL, 32,
-                  PropModeReplace, (unsigned char *)&value, 1);
-}
-
-void _glfwSetRawMouseMotionX11(_GLFWwindow *window, GLFWbool enabled) {
-  if (!_glfw.x11.xi.available)
-    return;
-
-  if (_glfw.x11.disabledCursorWindow != window)
-    return;
-
-  if (enabled)
-    enableRawMouseMotion(window);
-  else
-    disableRawMouseMotion(window);
-}
-
-GLFWbool _glfwRawMouseMotionSupportedX11(void) {
-  return _glfw.x11.xi.available;
-}
-
-void _glfwPollEventsX11(void) {
-  drainEmptyEvents();
-
-#if defined(GLFW_BUILD_LINUX_JOYSTICK)
-  if (_glfw.joysticksInitialized)
-    _glfwDetectJoystickConnectionLinux();
 #endif
-  XPending(_glfw.x11.display);
-
-  while (QLength(_glfw.x11.display)) {
-    XEvent event;
-    XNextEvent(_glfw.x11.display, &event);
-    processEvent(&event);
-  }
-
-  _GLFWwindow *window = _glfw.x11.disabledCursorWindow;
-  if (window) {
-    int width, height;
-    _glfwGetWindowSizeX11(window, &width, &height);
-
-    // NOTE: Re-center the cursor only if it has moved since the last call,
-    //       to avoid breaking glfwWaitEvents with MotionNotify
-    if (window->x11.lastCursorPosX != width / 2 ||
-        window->x11.lastCursorPosY != height / 2) {
-      _glfwSetCursorPosX11(window, width / 2, height / 2);
     }
-  }
 
-  XFlush(_glfw.x11.display);
-}
+    float _glfwGetWindowOpacityX11(_GLFWwindow * window) {
+      float opacity = 1.f;
 
-void _glfwWaitEventsX11(void) {
-  waitForAnyEvent(NULL);
-  _glfwPollEventsX11();
-}
+      if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.NET_WM_CM_Sx)) {
+        CARD32 *value = NULL;
 
-void _glfwWaitEventsTimeoutX11(double timeout) {
-  waitForAnyEvent(&timeout);
-  _glfwPollEventsX11();
-}
+        if (_glfwGetWindowPropertyX11(window->x11.handle,
+                                      _glfw.x11.NET_WM_WINDOW_OPACITY,
+                                      XA_CARDINAL, (unsigned char **)&value)) {
+          opacity = (float)(*value / (double)0xffffffffu);
+        }
 
-void _glfwPostEmptyEventX11(void) { writeEmptyEvent(); }
+        if (value)
+          XFree(value);
+      }
 
-void _glfwGetCursorPosX11(_GLFWwindow *window, double *xpos, double *ypos) {
-  Window root, child;
-  int rootX, rootY, childX, childY;
-  unsigned int mask;
+      return opacity;
+    }
 
-  XQueryPointer(_glfw.x11.display, window->x11.handle, &root, &child, &rootX,
-                &rootY, &childX, &childY, &mask);
+    void _glfwSetWindowOpacityX11(_GLFWwindow * window, float opacity) {
+      const CARD32 value = (CARD32)(0xffffffffu * (double)opacity);
+      XChangeProperty(_glfw.x11.display, window->x11.handle,
+                      _glfw.x11.NET_WM_WINDOW_OPACITY, XA_CARDINAL, 32,
+                      PropModeReplace, (unsigned char *)&value, 1);
+    }
 
-  if (xpos)
-    *xpos = childX;
-  if (ypos)
-    *ypos = childY;
-}
+    void _glfwSetRawMouseMotionX11(_GLFWwindow * window, GLFWbool enabled) {
+      if (!_glfw.x11.xi.available)
+        return;
 
-void _glfwSetCursorPosX11(_GLFWwindow *window, double x, double y) {
-  // Store the new position so it can be recognized later
-  window->x11.warpCursorPosX = (int)x;
-  window->x11.warpCursorPosY = (int)y;
+      if (_glfw.x11.disabledCursorWindow != window)
+        return;
 
-  XWarpPointer(_glfw.x11.display, None, window->x11.handle, 0, 0, 0, 0, (int)x,
-               (int)y);
-  XFlush(_glfw.x11.display);
-}
-
-void _glfwSetCursorModeX11(_GLFWwindow *window, int mode) {
-  if (_glfwWindowFocusedX11(window)) {
-    if (mode == GLFW_CURSOR_DISABLED) {
-      _glfwGetCursorPosX11(window, &_glfw.x11.restoreCursorPosX,
-                           &_glfw.x11.restoreCursorPosY);
-      _glfwCenterCursorInContentArea(window);
-      if (window->rawMouseMotion)
+      if (enabled)
         enableRawMouseMotion(window);
-    } else if (_glfw.x11.disabledCursorWindow == window) {
-      if (window->rawMouseMotion)
+      else
         disableRawMouseMotion(window);
     }
 
-    if (mode == GLFW_CURSOR_DISABLED || mode == GLFW_CURSOR_CAPTURED)
-      captureCursor(window);
-    else
-      releaseCursor();
-
-    if (mode == GLFW_CURSOR_DISABLED)
-      _glfw.x11.disabledCursorWindow = window;
-    else if (_glfw.x11.disabledCursorWindow == window) {
-      _glfw.x11.disabledCursorWindow = NULL;
-      _glfwSetCursorPosX11(window, _glfw.x11.restoreCursorPosX,
-                           _glfw.x11.restoreCursorPosY);
+    GLFWbool _glfwRawMouseMotionSupportedX11(void) {
+      return _glfw.x11.xi.available;
     }
-  }
 
-  updateCursorImage(window);
-  XFlush(_glfw.x11.display);
-}
+    void _glfwPollEventsX11(void) {
+      drainEmptyEvents();
 
-const char *_glfwGetScancodeNameX11(int scancode) {
-  if (!_glfw.x11.xkb.available)
-    return NULL;
+#if defined(GLFW_BUILD_LINUX_JOYSTICK)
+      if (_glfw.joysticksInitialized)
+        _glfwDetectJoystickConnectionLinux();
+#endif
+      XPending(_glfw.x11.display);
 
-  if (scancode < 0 || scancode > 0xff) {
-    _glfwInputError(GLFW_INVALID_VALUE, "Invalid scancode %i", scancode);
-    return NULL;
-  }
-
-  const int key = _glfw.x11.keycodes[scancode];
-  if (key == GLFW_KEY_UNKNOWN)
-    return NULL;
-
-  const KeySym keysym =
-      XkbKeycodeToKeysym(_glfw.x11.display, scancode, _glfw.x11.xkb.group, 0);
-  if (keysym == NoSymbol)
-    return NULL;
-
-  const uint32_t codepoint = _glfwKeySym2Unicode(keysym);
-  if (codepoint == GLFW_INVALID_CODEPOINT)
-    return NULL;
-
-  const size_t count = _glfwEncodeUTF8(_glfw.x11.keynames[key], codepoint);
-  if (count == 0)
-    return NULL;
-
-  _glfw.x11.keynames[key][count] = '\0';
-  return _glfw.x11.keynames[key];
-}
-
-int _glfwGetKeyScancodeX11(int key) { return _glfw.x11.scancodes[key]; }
-
-GLFWbool _glfwCreateCursorX11(_GLFWcursor *cursor, const GLFWimage *image,
-                              int xhot, int yhot) {
-  cursor->x11.handle = _glfwCreateNativeCursorX11(image, xhot, yhot);
-  if (!cursor->x11.handle)
-    return GLFW_FALSE;
-
-  return GLFW_TRUE;
-}
-
-GLFWbool _glfwCreateStandardCursorX11(_GLFWcursor *cursor, int shape) {
-  if (_glfw.x11.xcursor.handle) {
-    char *theme = XcursorGetTheme(_glfw.x11.display);
-    if (theme) {
-      const int size = XcursorGetDefaultSize(_glfw.x11.display);
-      const char *name = NULL;
-
-      switch (shape) {
-      case GLFW_ARROW_CURSOR:
-        name = "default";
-        break;
-      case GLFW_IBEAM_CURSOR:
-        name = "text";
-        break;
-      case GLFW_CROSSHAIR_CURSOR:
-        name = "crosshair";
-        break;
-      case GLFW_POINTING_HAND_CURSOR:
-        name = "pointer";
-        break;
-      case GLFW_RESIZE_EW_CURSOR:
-        name = "ew-resize";
-        break;
-      case GLFW_RESIZE_NS_CURSOR:
-        name = "ns-resize";
-        break;
-      case GLFW_RESIZE_NWSE_CURSOR:
-        name = "nwse-resize";
-        break;
-      case GLFW_RESIZE_NESW_CURSOR:
-        name = "nesw-resize";
-        break;
-      case GLFW_RESIZE_ALL_CURSOR:
-        name = "all-scroll";
-        break;
-      case GLFW_NOT_ALLOWED_CURSOR:
-        name = "not-allowed";
-        break;
+      while (QLength(_glfw.x11.display)) {
+        XEvent event;
+        XNextEvent(_glfw.x11.display, &event);
+        processEvent(&event);
       }
 
-      XcursorImage *image = XcursorLibraryLoadImage(name, theme, size);
-      if (image) {
-        cursor->x11.handle = XcursorImageLoadCursor(_glfw.x11.display, image);
-        XcursorImageDestroy(image);
+      _GLFWwindow *window = _glfw.x11.disabledCursorWindow;
+      if (window) {
+        int width, height;
+        _glfwGetWindowSizeX11(window, &width, &height);
+
+        // NOTE: Re-center the cursor only if it has moved since the last call,
+        //       to avoid breaking glfwWaitEvents with MotionNotify
+        if (window->x11.lastCursorPosX != width / 2 ||
+            window->x11.lastCursorPosY != height / 2) {
+          _glfwSetCursorPosX11(window, width / 2, height / 2);
+        }
+      }
+
+      XFlush(_glfw.x11.display);
+    }
+
+    void _glfwWaitEventsX11(void) {
+      waitForAnyEvent(NULL);
+      _glfwPollEventsX11();
+    }
+
+    void _glfwWaitEventsTimeoutX11(double timeout) {
+      waitForAnyEvent(&timeout);
+      _glfwPollEventsX11();
+    }
+
+    void _glfwPostEmptyEventX11(void) { writeEmptyEvent(); }
+
+    void _glfwGetCursorPosX11(_GLFWwindow * window, double *xpos,
+                              double *ypos) {
+      Window root, child;
+      int rootX, rootY, childX, childY;
+      unsigned int mask;
+
+      XQueryPointer(_glfw.x11.display, window->x11.handle, &root, &child,
+                    &rootX, &rootY, &childX, &childY, &mask);
+
+      if (xpos)
+        *xpos = childX;
+      if (ypos)
+        *ypos = childY;
+    }
+
+    void _glfwSetCursorPosX11(_GLFWwindow * window, double x, double y) {
+      // Store the new position so it can be recognized later
+      window->x11.warpCursorPosX = (int)x;
+      window->x11.warpCursorPosY = (int)y;
+
+      XWarpPointer(_glfw.x11.display, None, window->x11.handle, 0, 0, 0, 0,
+                   (int)x, (int)y);
+      XFlush(_glfw.x11.display);
+    }
+
+    void _glfwSetCursorModeX11(_GLFWwindow * window, int mode) {
+      if (_glfwWindowFocusedX11(window)) {
+        if (mode == GLFW_CURSOR_DISABLED) {
+          _glfwGetCursorPosX11(window, &_glfw.x11.restoreCursorPosX,
+                               &_glfw.x11.restoreCursorPosY);
+          _glfwCenterCursorInContentArea(window);
+          if (window->rawMouseMotion)
+            enableRawMouseMotion(window);
+        } else if (_glfw.x11.disabledCursorWindow == window) {
+          if (window->rawMouseMotion)
+            disableRawMouseMotion(window);
+        }
+
+        if (mode == GLFW_CURSOR_DISABLED || mode == GLFW_CURSOR_CAPTURED)
+          captureCursor(window);
+        else
+          releaseCursor();
+
+        if (mode == GLFW_CURSOR_DISABLED)
+          _glfw.x11.disabledCursorWindow = window;
+        else if (_glfw.x11.disabledCursorWindow == window) {
+          _glfw.x11.disabledCursorWindow = NULL;
+          _glfwSetCursorPosX11(window, _glfw.x11.restoreCursorPosX,
+                               _glfw.x11.restoreCursorPosY);
+        }
+      }
+
+      updateCursorImage(window);
+      XFlush(_glfw.x11.display);
+    }
+
+    const char *_glfwGetScancodeNameX11(int scancode) {
+      if (!_glfw.x11.xkb.available)
+        return NULL;
+
+      if (scancode < 0 || scancode > 0xff) {
+        _glfwInputError(GLFW_INVALID_VALUE, "Invalid scancode %i", scancode);
+        return NULL;
+      }
+
+      const int key = _glfw.x11.keycodes[scancode];
+      if (key == GLFW_KEY_UNKNOWN)
+        return NULL;
+
+      const KeySym keysym = XkbKeycodeToKeysym(_glfw.x11.display, scancode,
+                                               _glfw.x11.xkb.group, 0);
+      if (keysym == NoSymbol)
+        return NULL;
+
+      const uint32_t codepoint = _glfwKeySym2Unicode(keysym);
+      if (codepoint == GLFW_INVALID_CODEPOINT)
+        return NULL;
+
+      const size_t count = _glfwEncodeUTF8(_glfw.x11.keynames[key], codepoint);
+      if (count == 0)
+        return NULL;
+
+      _glfw.x11.keynames[key][count] = '\0';
+      return _glfw.x11.keynames[key];
+    }
+
+    int _glfwGetKeyScancodeX11(int key) { return _glfw.x11.scancodes[key]; }
+
+    GLFWbool _glfwCreateCursorX11(_GLFWcursor * cursor, const GLFWimage *image,
+                                  int xhot, int yhot) {
+      cursor->x11.handle = _glfwCreateNativeCursorX11(image, xhot, yhot);
+      if (!cursor->x11.handle)
+        return GLFW_FALSE;
+
+      return GLFW_TRUE;
+    }
+
+    GLFWbool _glfwCreateStandardCursorX11(_GLFWcursor * cursor, int shape) {
+      if (_glfw.x11.xcursor.handle) {
+        char *theme = XcursorGetTheme(_glfw.x11.display);
+        if (theme) {
+          const int size = XcursorGetDefaultSize(_glfw.x11.display);
+          const char *name = NULL;
+
+          switch (shape) {
+          case GLFW_ARROW_CURSOR:
+            name = "default";
+            break;
+          case GLFW_IBEAM_CURSOR:
+            name = "text";
+            break;
+          case GLFW_CROSSHAIR_CURSOR:
+            name = "crosshair";
+            break;
+          case GLFW_POINTING_HAND_CURSOR:
+            name = "pointer";
+            break;
+          case GLFW_RESIZE_EW_CURSOR:
+            name = "ew-resize";
+            break;
+          case GLFW_RESIZE_NS_CURSOR:
+            name = "ns-resize";
+            break;
+          case GLFW_RESIZE_NWSE_CURSOR:
+            name = "nwse-resize";
+            break;
+          case GLFW_RESIZE_NESW_CURSOR:
+            name = "nesw-resize";
+            break;
+          case GLFW_RESIZE_ALL_CURSOR:
+            name = "all-scroll";
+            break;
+          case GLFW_NOT_ALLOWED_CURSOR:
+            name = "not-allowed";
+            break;
+          }
+
+          XcursorImage *image = XcursorLibraryLoadImage(name, theme, size);
+          if (image) {
+            cursor->x11.handle =
+                XcursorImageLoadCursor(_glfw.x11.display, image);
+            XcursorImageDestroy(image);
+          }
+        }
+      }
+
+      if (!cursor->x11.handle) {
+        unsigned int native = 0;
+
+        switch (shape) {
+        case GLFW_ARROW_CURSOR:
+          native = XC_left_ptr;
+          break;
+        case GLFW_IBEAM_CURSOR:
+          native = XC_xterm;
+          break;
+        case GLFW_CROSSHAIR_CURSOR:
+          native = XC_crosshair;
+          break;
+        case GLFW_POINTING_HAND_CURSOR:
+          native = XC_hand2;
+          break;
+        case GLFW_RESIZE_EW_CURSOR:
+          native = XC_sb_h_double_arrow;
+          break;
+        case GLFW_RESIZE_NS_CURSOR:
+          native = XC_sb_v_double_arrow;
+          break;
+        case GLFW_RESIZE_ALL_CURSOR:
+          native = XC_fleur;
+          break;
+        default:
+          _glfwInputError(GLFW_CURSOR_UNAVAILABLE,
+                          "X11: Standard cursor shape unavailable");
+          return GLFW_FALSE;
+        }
+
+        cursor->x11.handle = XCreateFontCursor(_glfw.x11.display, native);
+        if (!cursor->x11.handle) {
+          _glfwInputError(GLFW_PLATFORM_ERROR,
+                          "X11: Failed to create standard cursor");
+          return GLFW_FALSE;
+        }
+      }
+
+      return GLFW_TRUE;
+    }
+
+    void _glfwDestroyCursorX11(_GLFWcursor * cursor) {
+      if (cursor->x11.handle)
+        XFreeCursor(_glfw.x11.display, cursor->x11.handle);
+    }
+
+    void _glfwSetCursorX11(_GLFWwindow * window, _GLFWcursor * cursor) {
+      if (window->cursorMode == GLFW_CURSOR_NORMAL ||
+          window->cursorMode == GLFW_CURSOR_CAPTURED) {
+        updateCursorImage(window);
+        XFlush(_glfw.x11.display);
       }
     }
-  }
 
-  if (!cursor->x11.handle) {
-    unsigned int native = 0;
+    void _glfwSetClipboardStringX11(const char *string) {
+      char *copy = _glfw_strdup(string);
+      _glfw_free(_glfw.x11.clipboardString);
+      _glfw.x11.clipboardString = copy;
 
-    switch (shape) {
-    case GLFW_ARROW_CURSOR:
-      native = XC_left_ptr;
-      break;
-    case GLFW_IBEAM_CURSOR:
-      native = XC_xterm;
-      break;
-    case GLFW_CROSSHAIR_CURSOR:
-      native = XC_crosshair;
-      break;
-    case GLFW_POINTING_HAND_CURSOR:
-      native = XC_hand2;
-      break;
-    case GLFW_RESIZE_EW_CURSOR:
-      native = XC_sb_h_double_arrow;
-      break;
-    case GLFW_RESIZE_NS_CURSOR:
-      native = XC_sb_v_double_arrow;
-      break;
-    case GLFW_RESIZE_ALL_CURSOR:
-      native = XC_fleur;
-      break;
-    default:
-      _glfwInputError(GLFW_CURSOR_UNAVAILABLE,
-                      "X11: Standard cursor shape unavailable");
-      return GLFW_FALSE;
+      XSetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD,
+                         _glfw.x11.helperWindowHandle, CurrentTime);
+
+      if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD) !=
+          _glfw.x11.helperWindowHandle) {
+        _glfwInputError(GLFW_PLATFORM_ERROR,
+                        "X11: Failed to become owner of clipboard selection");
+      }
     }
 
-    cursor->x11.handle = XCreateFontCursor(_glfw.x11.display, native);
-    if (!cursor->x11.handle) {
-      _glfwInputError(GLFW_PLATFORM_ERROR,
-                      "X11: Failed to create standard cursor");
-      return GLFW_FALSE;
-    }
-  }
-
-  return GLFW_TRUE;
-}
-
-void _glfwDestroyCursorX11(_GLFWcursor *cursor) {
-  if (cursor->x11.handle)
-    XFreeCursor(_glfw.x11.display, cursor->x11.handle);
-}
-
-void _glfwSetCursorX11(_GLFWwindow *window, _GLFWcursor *cursor) {
-  if (window->cursorMode == GLFW_CURSOR_NORMAL ||
-      window->cursorMode == GLFW_CURSOR_CAPTURED) {
-    updateCursorImage(window);
-    XFlush(_glfw.x11.display);
-  }
-}
-
-void _glfwSetClipboardStringX11(const char *string) {
-  char *copy = _glfw_strdup(string);
-  _glfw_free(_glfw.x11.clipboardString);
-  _glfw.x11.clipboardString = copy;
-
-  XSetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD,
-                     _glfw.x11.helperWindowHandle, CurrentTime);
-
-  if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD) !=
-      _glfw.x11.helperWindowHandle) {
-    _glfwInputError(GLFW_PLATFORM_ERROR,
-                    "X11: Failed to become owner of clipboard selection");
-  }
-}
-
-const char *_glfwGetClipboardStringX11(void) {
-  return getSelectionString(_glfw.x11.CLIPBOARD);
-}
-
-EGLenum _glfwGetEGLPlatformX11(EGLint **attribs) {
-  if (_glfw.egl.ANGLE_platform_angle) {
-    int type = 0;
-
-    if (_glfw.egl.ANGLE_platform_angle_opengl) {
-      if (_glfw.hints.init.angleType == GLFW_ANGLE_PLATFORM_TYPE_OPENGL)
-        type = EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE;
+    const char *_glfwGetClipboardStringX11(void) {
+      return getSelectionString(_glfw.x11.CLIPBOARD);
     }
 
-    if (_glfw.egl.ANGLE_platform_angle_vulkan) {
-      if (_glfw.hints.init.angleType == GLFW_ANGLE_PLATFORM_TYPE_VULKAN)
-        type = EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
+    EGLenum _glfwGetEGLPlatformX11(EGLint * *attribs) {
+      if (_glfw.egl.ANGLE_platform_angle) {
+        int type = 0;
+
+        if (_glfw.egl.ANGLE_platform_angle_opengl) {
+          if (_glfw.hints.init.angleType == GLFW_ANGLE_PLATFORM_TYPE_OPENGL)
+            type = EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE;
+        }
+
+        if (_glfw.egl.ANGLE_platform_angle_vulkan) {
+          if (_glfw.hints.init.angleType == GLFW_ANGLE_PLATFORM_TYPE_VULKAN)
+            type = EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
+        }
+
+        if (type) {
+          *attribs = _glfw_calloc(5, sizeof(EGLint));
+          (*attribs)[0] = EGL_PLATFORM_ANGLE_TYPE_ANGLE;
+          (*attribs)[1] = type;
+          (*attribs)[2] = EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE;
+          (*attribs)[3] = EGL_PLATFORM_X11_EXT;
+          (*attribs)[4] = EGL_NONE;
+          return EGL_PLATFORM_ANGLE_ANGLE;
+        }
+      }
+
+      if (_glfw.egl.EXT_platform_base && _glfw.egl.EXT_platform_x11)
+        return EGL_PLATFORM_X11_EXT;
+
+      return 0;
     }
 
-    if (type) {
-      *attribs = _glfw_calloc(5, sizeof(EGLint));
-      (*attribs)[0] = EGL_PLATFORM_ANGLE_TYPE_ANGLE;
-      (*attribs)[1] = type;
-      (*attribs)[2] = EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE;
-      (*attribs)[3] = EGL_PLATFORM_X11_EXT;
-      (*attribs)[4] = EGL_NONE;
-      return EGL_PLATFORM_ANGLE_ANGLE;
-    }
-  }
-
-  if (_glfw.egl.EXT_platform_base && _glfw.egl.EXT_platform_x11)
-    return EGL_PLATFORM_X11_EXT;
-
-  return 0;
-}
-
-EGLNativeDisplayType _glfwGetEGLNativeDisplayX11(void) {
-  return _glfw.x11.display;
-}
-
-EGLNativeWindowType _glfwGetEGLNativeWindowX11(_GLFWwindow *window) {
-  if (_glfw.egl.platform)
-    return &window->x11.handle;
-  else
-    return (EGLNativeWindowType)window->x11.handle;
-}
-
-void _glfwGetRequiredInstanceExtensionsX11(char **extensions) {
-  if (!_glfw.vk.KHR_surface)
-    return;
-
-  if (!_glfw.vk.KHR_xcb_surface || !_glfw.x11.x11xcb.handle) {
-    if (!_glfw.vk.KHR_xlib_surface)
-      return;
-  }
-
-  extensions[0] = "VK_KHR_surface";
-
-  // NOTE: VK_KHR_xcb_surface is preferred due to some early ICDs exposing but
-  //       not correctly implementing VK_KHR_xlib_surface
-  if (_glfw.vk.KHR_xcb_surface && _glfw.x11.x11xcb.handle)
-    extensions[1] = "VK_KHR_xcb_surface";
-  else
-    extensions[1] = "VK_KHR_xlib_surface";
-}
-
-GLFWbool _glfwGetPhysicalDevicePresentationSupportX11(VkInstance instance,
-                                                      VkPhysicalDevice device,
-                                                      uint32_t queuefamily) {
-  VisualID visualID =
-      XVisualIDFromVisual(DefaultVisual(_glfw.x11.display, _glfw.x11.screen));
-
-  if (_glfw.vk.KHR_xcb_surface && _glfw.x11.x11xcb.handle) {
-    PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR
-        vkGetPhysicalDeviceXcbPresentationSupportKHR =
-            (PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)
-                vkGetInstanceProcAddr(
-                    instance, "vkGetPhysicalDeviceXcbPresentationSupportKHR");
-    if (!vkGetPhysicalDeviceXcbPresentationSupportKHR) {
-      _glfwInputError(
-          GLFW_API_UNAVAILABLE,
-          "X11: Vulkan instance missing VK_KHR_xcb_surface extension");
-      return GLFW_FALSE;
+    EGLNativeDisplayType _glfwGetEGLNativeDisplayX11(void) {
+      return _glfw.x11.display;
     }
 
-    xcb_connection_t *connection = XGetXCBConnection(_glfw.x11.display);
-    if (!connection) {
-      _glfwInputError(GLFW_PLATFORM_ERROR,
-                      "X11: Failed to retrieve XCB connection");
-      return GLFW_FALSE;
+    EGLNativeWindowType _glfwGetEGLNativeWindowX11(_GLFWwindow * window) {
+      if (_glfw.egl.platform)
+        return &window->x11.handle;
+      else
+        return (EGLNativeWindowType)window->x11.handle;
     }
 
-    return vkGetPhysicalDeviceXcbPresentationSupportKHR(device, queuefamily,
-                                                        connection, visualID);
-  } else {
-    PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR
-        vkGetPhysicalDeviceXlibPresentationSupportKHR =
-            (PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR)
-                vkGetInstanceProcAddr(
-                    instance, "vkGetPhysicalDeviceXlibPresentationSupportKHR");
-    if (!vkGetPhysicalDeviceXlibPresentationSupportKHR) {
-      _glfwInputError(
-          GLFW_API_UNAVAILABLE,
-          "X11: Vulkan instance missing VK_KHR_xlib_surface extension");
-      return GLFW_FALSE;
+    void _glfwGetRequiredInstanceExtensionsX11(char **extensions) {
+      if (!_glfw.vk.KHR_surface)
+        return;
+
+      if (!_glfw.vk.KHR_xcb_surface || !_glfw.x11.x11xcb.handle) {
+        if (!_glfw.vk.KHR_xlib_surface)
+          return;
+      }
+
+      extensions[0] = "VK_KHR_surface";
+
+      // NOTE: VK_KHR_xcb_surface is preferred due to some early ICDs exposing
+      // but
+      //       not correctly implementing VK_KHR_xlib_surface
+      if (_glfw.vk.KHR_xcb_surface && _glfw.x11.x11xcb.handle)
+        extensions[1] = "VK_KHR_xcb_surface";
+      else
+        extensions[1] = "VK_KHR_xlib_surface";
     }
 
-    return vkGetPhysicalDeviceXlibPresentationSupportKHR(
-        device, queuefamily, _glfw.x11.display, visualID);
-  }
-}
+    GLFWbool _glfwGetPhysicalDevicePresentationSupportX11(
+        VkInstance instance, VkPhysicalDevice device, uint32_t queuefamily) {
+      VisualID visualID = XVisualIDFromVisual(
+          DefaultVisual(_glfw.x11.display, _glfw.x11.screen));
 
-VkResult _glfwCreateWindowSurfaceX11(VkInstance instance, _GLFWwindow *window,
-                                     const VkAllocationCallbacks *allocator,
-                                     VkSurfaceKHR *surface) {
-  if (_glfw.vk.KHR_xcb_surface && _glfw.x11.x11xcb.handle) {
-    VkResult err;
-    VkXcbSurfaceCreateInfoKHR sci;
-    PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHR;
+      if (_glfw.vk.KHR_xcb_surface && _glfw.x11.x11xcb.handle) {
+        PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR
+            vkGetPhysicalDeviceXcbPresentationSupportKHR =
+                (PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)
+                    vkGetInstanceProcAddr(
+                        instance,
+                        "vkGetPhysicalDeviceXcbPresentationSupportKHR");
+        if (!vkGetPhysicalDeviceXcbPresentationSupportKHR) {
+          _glfwInputError(
+              GLFW_API_UNAVAILABLE,
+              "X11: Vulkan instance missing VK_KHR_xcb_surface extension");
+          return GLFW_FALSE;
+        }
 
-    xcb_connection_t *connection = XGetXCBConnection(_glfw.x11.display);
-    if (!connection) {
-      _glfwInputError(GLFW_PLATFORM_ERROR,
-                      "X11: Failed to retrieve XCB connection");
-      return VK_ERROR_EXTENSION_NOT_PRESENT;
+        xcb_connection_t *connection = XGetXCBConnection(_glfw.x11.display);
+        if (!connection) {
+          _glfwInputError(GLFW_PLATFORM_ERROR,
+                          "X11: Failed to retrieve XCB connection");
+          return GLFW_FALSE;
+        }
+
+        return vkGetPhysicalDeviceXcbPresentationSupportKHR(
+            device, queuefamily, connection, visualID);
+      } else {
+        PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR
+            vkGetPhysicalDeviceXlibPresentationSupportKHR =
+                (PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR)
+                    vkGetInstanceProcAddr(
+                        instance,
+                        "vkGetPhysicalDeviceXlibPresentationSupportKHR");
+        if (!vkGetPhysicalDeviceXlibPresentationSupportKHR) {
+          _glfwInputError(
+              GLFW_API_UNAVAILABLE,
+              "X11: Vulkan instance missing VK_KHR_xlib_surface extension");
+          return GLFW_FALSE;
+        }
+
+        return vkGetPhysicalDeviceXlibPresentationSupportKHR(
+            device, queuefamily, _glfw.x11.display, visualID);
+      }
     }
 
-    vkCreateXcbSurfaceKHR = (PFN_vkCreateXcbSurfaceKHR)vkGetInstanceProcAddr(
-        instance, "vkCreateXcbSurfaceKHR");
-    if (!vkCreateXcbSurfaceKHR) {
-      _glfwInputError(
-          GLFW_API_UNAVAILABLE,
-          "X11: Vulkan instance missing VK_KHR_xcb_surface extension");
-      return VK_ERROR_EXTENSION_NOT_PRESENT;
+    VkResult _glfwCreateWindowSurfaceX11(
+        VkInstance instance, _GLFWwindow * window,
+        const VkAllocationCallbacks *allocator, VkSurfaceKHR *surface) {
+      if (_glfw.vk.KHR_xcb_surface && _glfw.x11.x11xcb.handle) {
+        VkResult err;
+        VkXcbSurfaceCreateInfoKHR sci;
+        PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHR;
+
+        xcb_connection_t *connection = XGetXCBConnection(_glfw.x11.display);
+        if (!connection) {
+          _glfwInputError(GLFW_PLATFORM_ERROR,
+                          "X11: Failed to retrieve XCB connection");
+          return VK_ERROR_EXTENSION_NOT_PRESENT;
+        }
+
+        vkCreateXcbSurfaceKHR =
+            (PFN_vkCreateXcbSurfaceKHR)vkGetInstanceProcAddr(
+                instance, "vkCreateXcbSurfaceKHR");
+        if (!vkCreateXcbSurfaceKHR) {
+          _glfwInputError(
+              GLFW_API_UNAVAILABLE,
+              "X11: Vulkan instance missing VK_KHR_xcb_surface extension");
+          return VK_ERROR_EXTENSION_NOT_PRESENT;
+        }
+
+        memset(&sci, 0, sizeof(sci));
+        sci.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        sci.connection = connection;
+        sci.window = window->x11.handle;
+
+        err = vkCreateXcbSurfaceKHR(instance, &sci, allocator, surface);
+        if (err) {
+          _glfwInputError(GLFW_PLATFORM_ERROR,
+                          "X11: Failed to create Vulkan XCB surface: %s",
+                          _glfwGetVulkanResultString(err));
+        }
+
+        return err;
+      } else {
+        VkResult err;
+        VkXlibSurfaceCreateInfoKHR sci;
+        PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR;
+
+        vkCreateXlibSurfaceKHR =
+            (PFN_vkCreateXlibSurfaceKHR)vkGetInstanceProcAddr(
+                instance, "vkCreateXlibSurfaceKHR");
+        if (!vkCreateXlibSurfaceKHR) {
+          _glfwInputError(
+              GLFW_API_UNAVAILABLE,
+              "X11: Vulkan instance missing VK_KHR_xlib_surface extension");
+          return VK_ERROR_EXTENSION_NOT_PRESENT;
+        }
+
+        memset(&sci, 0, sizeof(sci));
+        sci.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+        sci.dpy = _glfw.x11.display;
+        sci.window = window->x11.handle;
+
+        err = vkCreateXlibSurfaceKHR(instance, &sci, allocator, surface);
+        if (err) {
+          _glfwInputError(GLFW_PLATFORM_ERROR,
+                          "X11: Failed to create Vulkan X11 surface: %s",
+                          _glfwGetVulkanResultString(err));
+        }
+
+        return err;
+      }
     }
 
-    memset(&sci, 0, sizeof(sci));
-    sci.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-    sci.connection = connection;
-    sci.window = window->x11.handle;
+    //////////////////////////////////////////////////////////////////////////
+    //////                        GLFW native API                       //////
+    //////////////////////////////////////////////////////////////////////////
 
-    err = vkCreateXcbSurfaceKHR(instance, &sci, allocator, surface);
-    if (err) {
-      _glfwInputError(GLFW_PLATFORM_ERROR,
-                      "X11: Failed to create Vulkan XCB surface: %s",
-                      _glfwGetVulkanResultString(err));
+    GLFWAPI Display *glfwGetX11Display(void) {
+      _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
+
+      if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
+        _glfwInputError(GLFW_PLATFORM_UNAVAILABLE,
+                        "X11: Platform not initialized");
+        return NULL;
+      }
+
+      return _glfw.x11.display;
     }
 
-    return err;
-  } else {
-    VkResult err;
-    VkXlibSurfaceCreateInfoKHR sci;
-    PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR;
+    GLFWAPI Window glfwGetX11Window(GLFWwindow * handle) {
+      _GLFW_REQUIRE_INIT_OR_RETURN(None);
 
-    vkCreateXlibSurfaceKHR = (PFN_vkCreateXlibSurfaceKHR)vkGetInstanceProcAddr(
-        instance, "vkCreateXlibSurfaceKHR");
-    if (!vkCreateXlibSurfaceKHR) {
-      _glfwInputError(
-          GLFW_API_UNAVAILABLE,
-          "X11: Vulkan instance missing VK_KHR_xlib_surface extension");
-      return VK_ERROR_EXTENSION_NOT_PRESENT;
+      if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
+        _glfwInputError(GLFW_PLATFORM_UNAVAILABLE,
+                        "X11: Platform not initialized");
+        return None;
+      }
+
+      _GLFWwindow *window = (_GLFWwindow *)handle;
+      assert(window != NULL);
+
+      return window->x11.handle;
     }
 
-    memset(&sci, 0, sizeof(sci));
-    sci.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-    sci.dpy = _glfw.x11.display;
-    sci.window = window->x11.handle;
+    GLFWAPI void glfwSetX11SelectionString(const char *string) {
+      assert(string != NULL);
 
-    err = vkCreateXlibSurfaceKHR(instance, &sci, allocator, surface);
-    if (err) {
-      _glfwInputError(GLFW_PLATFORM_ERROR,
-                      "X11: Failed to create Vulkan X11 surface: %s",
-                      _glfwGetVulkanResultString(err));
+      _GLFW_REQUIRE_INIT();
+
+      if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
+        _glfwInputError(GLFW_PLATFORM_UNAVAILABLE,
+                        "X11: Platform not initialized");
+        return;
+      }
+
+      _glfw_free(_glfw.x11.primarySelectionString);
+      _glfw.x11.primarySelectionString = _glfw_strdup(string);
+
+      XSetSelectionOwner(_glfw.x11.display, _glfw.x11.PRIMARY,
+                         _glfw.x11.helperWindowHandle, CurrentTime);
+
+      if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.PRIMARY) !=
+          _glfw.x11.helperWindowHandle) {
+        _glfwInputError(GLFW_PLATFORM_ERROR,
+                        "X11: Failed to become owner of primary selection");
+      }
     }
 
-    return err;
-  }
-}
+    GLFWAPI const char *glfwGetX11SelectionString(void) {
+      _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
 
-//////////////////////////////////////////////////////////////////////////
-//////                        GLFW native API                       //////
-//////////////////////////////////////////////////////////////////////////
+      if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
+        _glfwInputError(GLFW_PLATFORM_UNAVAILABLE,
+                        "X11: Platform not initialized");
+        return NULL;
+      }
 
-GLFWAPI Display *glfwGetX11Display(void) {
-  _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
-
-  if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
-    _glfwInputError(GLFW_PLATFORM_UNAVAILABLE, "X11: Platform not initialized");
-    return NULL;
-  }
-
-  return _glfw.x11.display;
-}
-
-GLFWAPI Window glfwGetX11Window(GLFWwindow *handle) {
-  _GLFW_REQUIRE_INIT_OR_RETURN(None);
-
-  if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
-    _glfwInputError(GLFW_PLATFORM_UNAVAILABLE, "X11: Platform not initialized");
-    return None;
-  }
-
-  _GLFWwindow *window = (_GLFWwindow *)handle;
-  assert(window != NULL);
-
-  return window->x11.handle;
-}
-
-GLFWAPI void glfwSetX11SelectionString(const char *string) {
-  assert(string != NULL);
-
-  _GLFW_REQUIRE_INIT();
-
-  if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
-    _glfwInputError(GLFW_PLATFORM_UNAVAILABLE, "X11: Platform not initialized");
-    return;
-  }
-
-  _glfw_free(_glfw.x11.primarySelectionString);
-  _glfw.x11.primarySelectionString = _glfw_strdup(string);
-
-  XSetSelectionOwner(_glfw.x11.display, _glfw.x11.PRIMARY,
-                     _glfw.x11.helperWindowHandle, CurrentTime);
-
-  if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.PRIMARY) !=
-      _glfw.x11.helperWindowHandle) {
-    _glfwInputError(GLFW_PLATFORM_ERROR,
-                    "X11: Failed to become owner of primary selection");
-  }
-}
-
-GLFWAPI const char *glfwGetX11SelectionString(void) {
-  _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
-
-  if (_glfw.platform.platformID != GLFW_PLATFORM_X11) {
-    _glfwInputError(GLFW_PLATFORM_UNAVAILABLE, "X11: Platform not initialized");
-    return NULL;
-  }
-
-  return getSelectionString(_glfw.x11.PRIMARY);
-}
+      return getSelectionString(_glfw.x11.PRIMARY);
+    }
 
 #endif // _GLFW_X11

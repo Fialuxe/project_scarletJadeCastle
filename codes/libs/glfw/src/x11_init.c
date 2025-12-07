@@ -718,6 +718,7 @@ static GLFWbool initExtensions(void) {
         &_glfw.x11.vidmode.errorBase);
   }
 
+#if 0
 #if defined(__CYGWIN__)
   _glfw.x11.xi.handle = _glfwPlatformLoadModule("libXi-6.so");
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
@@ -745,6 +746,7 @@ static GLFWbool initExtensions(void) {
       }
     }
   }
+#endif
 
 #if 0
 #if defined(__CYGWIN__)
@@ -871,6 +873,7 @@ static GLFWbool initExtensions(void) {
     }
 #endif
 
+#if 0
 #if defined(__CYGWIN__)
   _glfw.x11.xinerama.handle = _glfwPlatformLoadModule("libXinerama-1.so");
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
@@ -895,7 +898,8 @@ static GLFWbool initExtensions(void) {
         _glfw.x11.xinerama.available = GLFW_TRUE;
     }
   }
-
+#endif
+#if 0
   _glfw.x11.xkb.major = 1;
   _glfw.x11.xkb.minor = 0;
   _glfw.x11.xkb.available = XkbQueryExtension(
@@ -911,12 +915,15 @@ static GLFWbool initExtensions(void) {
     }
 
     XkbStateRec state;
-    if (XkbGetState(_glfw.x11.display, XkbUseCoreKbd, &state) == Success)
-      _glfw.x11.xkb.group = (unsigned int)state.group;
+    XkbGetState(_glfw.x11.display, XkbUseCoreKbd, &state);
+    _glfw.x11.xkb.group = state.group;
 
     XkbSelectEventDetails(_glfw.x11.display, XkbUseCoreKbd, XkbStateNotify,
                           XkbGroupStateMask, XkbGroupStateMask);
   }
+#else
+  _glfw.x11.xkb.available = GLFW_FALSE;
+#endif
 
   if (_glfw.hints.init.x11.xcbVulkanSurface) {
 #if defined(__CYGWIN__)
@@ -961,6 +968,7 @@ static GLFWbool initExtensions(void) {
     }
   }
 
+#if 0
 #if defined(__CYGWIN__)
   _glfw.x11.xshape.handle = _glfwPlatformLoadModule("libXext-6.so");
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
@@ -990,6 +998,7 @@ static GLFWbool initExtensions(void) {
       }
     }
   }
+#endif
 
   // Update the key code LUT
   // FIXME: We should listen to XkbMapNotify events to track changes to

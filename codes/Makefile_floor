@@ -41,7 +41,7 @@ else
 	# Linux / Other
 	CFLAGS += $(GLFW_INCLUDE)
 	# Link static GLFW and its dependencies (X11, etc.)
-	LIBS = $(LIBS_PATH) $(GLFW_LIB) -lGL -ldl -lpthread -lX11 -lXrandr -lXinerama -lXi -lXcursor -lassimp $(COMMON_LIBS)
+	LIBS = -L$(GLFW_BUILD_DIR) -lglfw3 -lGL -lX11 -lm -ldl -lpthread
 endif
 
 all: $(GLFW_LIB) $(TARGET)
