@@ -104,7 +104,31 @@
 #include <X11/Xresource.h>
 #include <X11/keysym.h>
 
-// Missing X11 types from Xutil.h
+// Missing X11 defines
+#define WithdrawnState 0
+#define NormalState 1
+#define IconicState 3
+
+#define InputHint (1L << 0)
+#define StateHint (1L << 1)
+#define IconPixmapHint (1L << 2)
+#define IconWindowHint (1L << 3)
+#define IconPositionHint (1L << 4)
+#define IconMaskHint (1L << 5)
+#define WindowGroupHint (1L << 6)
+#define XUrgencyHint (1L << 8)
+
+#define USPosition (1L << 0)
+#define USSize (1L << 1)
+#define PPosition (1L << 2)
+#define PSize (1L << 3)
+#define PMinSize (1L << 4)
+#define PMaxSize (1L << 5)
+#define PResizeInc (1L << 6)
+#define PAspect (1L << 7)
+#define PBaseSize (1L << 8)
+#define PWinGravity (1L << 9)
+
 typedef struct {
   char *res_name;
   char *res_class;
@@ -147,6 +171,7 @@ typedef struct {
   unsigned long blue_mask;
   int colormap_size;
   int bits_per_rgb;
+  unsigned long alphaMask; // Added missing member
 } XVisualInfo;
 
 typedef struct _XComposeStatus {
