@@ -1,7 +1,7 @@
 # Makefile for Modular Aincrad Floor Project
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Wno-deprecated-declarations -Isrc
+CFLAGS = -Wall -Wextra -std=c99 -D_GNU_SOURCE -Wno-deprecated-declarations -Isrc
 TARGET = aincrad_floor
 
 # GLFW Configuration
