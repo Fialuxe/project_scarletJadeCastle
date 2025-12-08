@@ -511,6 +511,7 @@ typedef void (*PFN_Xutf8SetWMProperties)(Display *, Window, const char *,
 #define XrmGetResource _glfw.x11.xrm.GetResource
 #define XrmGetStringDatabase _glfw.x11.xrm.GetStringDatabase
 #define XrmUniqueQuark _glfw.x11.xrm.UniqueQuark
+#define XUniqueContext XrmUniqueQuark
 #define XUnregisterIMInstantiateCallback                                       \
   _glfw.x11.xlib.UnregisterIMInstantiateCallback
 #define Xutf8LookupString _glfw.x11.xlib.utf8LookupString
