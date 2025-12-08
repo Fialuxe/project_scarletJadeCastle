@@ -134,7 +134,7 @@ void storeMatrix(float *buffer, int index, mat4 m) {
 #define HALFPIPE_OFFSET_Y                                                      \
   -0.22f // it is not intuitive... minus is above, plus is below
 #define HALFPIPE_OFFSET_Z 0.0f
-#define HALFPIPE_SCALE 2.65f
+#define HALFPIPE_SCALE 1.00f
 
 // Lighting
 #define SUN_DIR_X -0.5f
@@ -255,8 +255,8 @@ int main() {
   // Load Gazebo Model & Texture
   Mesh gazeboMesh;
   GLuint gazeboTexture;
-  LoadModelWithTexture("../materials/gazebo/rgazebo_basic_pbr.fbx",
-                       "../materials/gazebo/shaded.png", &gazeboMesh,
+  LoadModelWithTexture("../materials/gazebo/rgazebo.obj",
+                       "../materials/gazebo/texture_diffuse.png", &gazeboMesh,
                        &gazeboTexture);
 
   // Create Border Mesh (Curb)
@@ -265,28 +265,28 @@ int main() {
   // Load Bridge Model & Texture
   Mesh bridgeMesh;
   GLuint bridgeTexture;
-  LoadModelWithTexture("../materials/bridge/bridge_pbr.fbx",
+  LoadModelWithTexture("../materials/bridge/bridge.obj",
                        "../materials/bridge/texture_diffuse.png", &bridgeMesh,
                        &bridgeTexture);
 
   // Load Halfpipe Model & Texture
   Mesh halfpipeMesh;
   GLuint halfpipeTexture;
-  LoadModelWithTexture("../materials/halfpipe/halfpipe.fbx",
+  LoadModelWithTexture("../materials/halfpipe/halfpipe.obj",
                        "../materials/halfpipe/halfpipe_texture.png",
                        &halfpipeMesh, &halfpipeTexture);
 
   // Load Flower Model & Texture
   Mesh flowerMesh;
   GLuint flowerTexture;
-  LoadModelWithTexture("../materials/flower/rflower_pbr.fbx",
+  LoadModelWithTexture("../materials/flower/rflower.obj",
                        "../materials/flower/shaded.png", &flowerMesh,
                        &flowerTexture);
 
   // Load White Flower Model & Texture
   Mesh flowerWMesh;
   GLuint flowerWTexture;
-  LoadModelWithTexture("../materials/flower_w/rflower_w_pbr.fbx",
+  LoadModelWithTexture("../materials/flower_w/rflower_w_pbr.obj",
                        "../materials/flower_w/shaded.png", &flowerWMesh,
                        &flowerWTexture);
 
@@ -313,7 +313,7 @@ int main() {
   // Load Castle Model & Texture
   Mesh castleMesh;
   GLuint castleTexture;
-  LoadModelWithTexture("../materials/castle/rcastle.fbx",
+  LoadModelWithTexture("../materials/castle/rcastle.obj",
                        "../materials/castle/texture_diffuse.png", &castleMesh,
                        &castleTexture);
 
@@ -348,7 +348,7 @@ int main() {
       model = mat4_multiply(
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
-      model = mat4_multiply(rotate_x(90.0f), model);
+      // model = mat4_multiply(rotate_x(90.0f), model);
       ADD_FLOWER(model);
     }
   }
@@ -361,7 +361,7 @@ int main() {
       model = mat4_multiply(
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
-      model = mat4_multiply(rotate_x(90.0f), model);
+      // model = mat4_multiply(rotate_x(90.0f), model);
       ADD_FLOWER(model);
     }
   }
@@ -374,7 +374,7 @@ int main() {
       model = mat4_multiply(
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
-      model = mat4_multiply(rotate_x(90.0f), model);
+      // model = mat4_multiply(rotate_x(90.0f), model);
       ADD_FLOWER(model);
     }
   }
@@ -388,7 +388,7 @@ int main() {
       model = mat4_multiply(
           scale(FLOWER_SCALE, 1.5 * FLOWER_SCALE, 2 * FLOWER_SCALE), model);
       model = mat4_multiply(rotate_y(90.0f), model);
-      model = mat4_multiply(rotate_x(90.0f), model);
+      // model = mat4_multiply(rotate_x(90.0f), model);
       ADD_FLOWER(model); // random color
     }
   }
@@ -406,7 +406,7 @@ int main() {
     model = mat4_multiply(
         scale(FLOWER_SCALE * 5, 1.5 * FLOWER_SCALE, 5 * FLOWER_SCALE), model);
     model = mat4_multiply(rotate_y(90.0f), model);
-    model = mat4_multiply(rotate_x(90.0f), model);
+    // model = mat4_multiply(rotate_x(90.0f), model);
     storeMatrix(flowerWMatrices, fwIdx++, model);
   }
 
@@ -737,10 +737,11 @@ int main() {
 
       mat4 modelBridge = identity();
       modelBridge = mat4_multiply(
-          scale(0.72 * BRIDGE_SCALE, 1.1 * BRIDGE_SCALE, 1.0 * BRIDGE_SCALE),
+          scale(0.72 * BRIDGE_SCALE, 1.1 * BRIDGE_SCALE, 0.8 * BRIDGE_SCALE),
           modelBridge);
       modelBridge = mat4_multiply(rotate_y(90.0f), modelBridge);
-      modelBridge = mat4_multiply(rotate_x(90.0f), modelBridge);
+      // if using assimp, remove the comment out the next line
+      //  modelBridge = mat4_multiply(rotate_x(90.0f), modelBridge);
       modelBridge = mat4_multiply(
           translate(BRIDGE_OFFSET_X, BRIDGE_Y_OFFSET, BRIDGE_OFFSET_Z),
           modelBridge);
@@ -765,14 +766,14 @@ int main() {
 
         mat4 modelHalfpipe = identity();
         // Scale
-        modelHalfpipe =
-            mat4_multiply(scale(25 * HALFPIPE_SCALE, 0.6 * HALFPIPE_SCALE,
-                                0.6 * HALFPIPE_SCALE),
-                          modelHalfpipe);
+        modelHalfpipe = mat4_multiply(
+            scale(2 * HALFPIPE_SCALE, 1 * HALFPIPE_SCALE, 1 * HALFPIPE_SCALE),
+            modelHalfpipe);
         // Rotate
         modelHalfpipe = mat4_multiply(rotate_y(90.0f), modelHalfpipe);
-        modelHalfpipe = mat4_multiply(rotate_x(180.0f), modelHalfpipe);
-        // Position under bridge (lower Y)
+        modelHalfpipe = mat4_multiply(rotate_x(90.0f), modelHalfpipe);
+
+        //  Position under bridge (lower Y)
 
         modelHalfpipe = mat4_multiply(
             translate(HALFPIPE_OFFSET_X, HALFPIPE_OFFSET_Y, HALFPIPE_OFFSET_Z),
@@ -872,7 +873,7 @@ int main() {
       modelCastle = mat4_multiply(
           translate(CASTLE_OFFSET_X, CASTLE_OFFSET_Y, CASTLE_OFFSET_Z),
           modelCastle);
-      modelCastle = mat4_multiply(rotate_x(90.0f), modelCastle);
+      // modelCastle = mat4_multiply(rotate_x(90.0f), modelCastle);
       Shader_SetMat4(shader, "model", modelCastle.m);
       Mesh_Draw(&castleMesh);
 
@@ -913,7 +914,7 @@ int main() {
       mat4 gazeboSR = identity();
       gazeboSR = mat4_multiply(scale(GAZEBO_SCALE, GAZEBO_SCALE, GAZEBO_SCALE),
                                gazeboSR);
-      gazeboSR = mat4_multiply(rotate_x(90.0f), gazeboSR);
+      // gazeboSR = mat4_multiply(rotate_x(90.0f), gazeboSR);
 
       for (int f = 0; f < 4; f++) {   // For each field
         for (int i = 0; i < 4; i++) { // For each corner

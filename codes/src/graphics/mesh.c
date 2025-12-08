@@ -2,6 +2,7 @@
 partially optimized performance
 */
 #include "mesh.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -252,64 +253,218 @@ void Mesh_Draw(Mesh *mesh) {
   glBindVertexArray(0);
 }
 
-#include <assimp/cimport.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+// Simple OBJ Loader (Replaces Assimp)
 Mesh Mesh_LoadModel(const char *path) {
   Mesh mesh = {0};
-
-  // for performance, disabled aiProcess_GenSmoothNormals
-  const struct aiScene *scene = aiImportFile(
-      path, aiProcess_Triangulate | aiProcess_FlipUVs |
-                aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
-
-  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
-      !scene->mRootNode) {
-    printf("ERROR::ASSIMP::%s\n", aiGetErrorString());
+  FILE *file = fopen(path, "r");
+  if (!file) {
+    printf("ERROR::OBJ::Could not open file: %s\n", path);
     return mesh;
   }
 
-  // Combine all meshes into one
-  int numVertices = 0;
-  int numIndices = 0;
+  // Dynamic arrays for parsing
+  int vCap = 4096, vtCap = 4096, vnCap = 4096, fCap = 4096;
+  int vCount = 0, vtCount = 0, vnCount = 0, fCount = 0;
 
-  for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-    numVertices += scene->mMeshes[i]->mNumVertices;
-    for (unsigned int f = 0; f < scene->mMeshes[i]->mNumFaces; f++) {
-      numIndices += scene->mMeshes[i]->mFaces[f].mNumIndices;
+  float *temp_v = (float *)malloc(vCap * 3 * sizeof(float));
+  float *temp_vt = (float *)malloc(vtCap * 2 * sizeof(float));
+  float *temp_vn = (float *)malloc(vnCap * 3 * sizeof(float));
+
+  // Face structure: 3 vertices per face (triangulated)
+  typedef struct {
+    int v[3], vt[3], vn[3];
+  } Face;
+  Face *temp_f = (Face *)malloc(fCap * sizeof(Face));
+
+  char line[512];
+  int lineCount = 0;
+  while (fgets(line, sizeof(line), file)) {
+    lineCount++;
+    if (lineCount <= 5) {
+      printf("DEBUG::OBJ::Line %d: %s", lineCount, line);
+    }
+    // Vertex Position
+    if (strncmp(line, "v ", 2) == 0) {
+      if (vCount >= vCap) {
+        vCap *= 2;
+        temp_v = (float *)realloc(temp_v, vCap * 3 * sizeof(float));
+      }
+      sscanf(line, "v %f %f %f", &temp_v[vCount * 3], &temp_v[vCount * 3 + 1],
+             &temp_v[vCount * 3 + 2]);
+      vCount++;
+    }
+    // Texture Coordinate
+    else if (strncmp(line, "vt ", 3) == 0) {
+      if (vtCount >= vtCap) {
+        vtCap *= 2;
+        temp_vt = (float *)realloc(temp_vt, vtCap * 2 * sizeof(float));
+      }
+      sscanf(line, "vt %f %f", &temp_vt[vtCount * 2],
+             &temp_vt[vtCount * 2 + 1]);
+      vtCount++;
+    }
+    // Vertex Normal
+    else if (strncmp(line, "vn ", 3) == 0) {
+      if (vnCount >= vnCap) {
+        vnCap *= 2;
+        temp_vn = (float *)realloc(temp_vn, vnCap * 3 * sizeof(float));
+      }
+      sscanf(line, "vn %f %f %f", &temp_vn[vnCount * 3],
+             &temp_vn[vnCount * 3 + 1], &temp_vn[vnCount * 3 + 2]);
+      vnCount++;
+    }
+    // Face
+    else if (strncmp(line, "f ", 2) == 0) {
+      // Parse face indices
+      int v[4] = {0}, vt[4] = {0}, vn[4] = {0};
+      int count = 0;
+      char *token = strtok(line + 2, " \t\r\n");
+      while (token != NULL && count < 4) {
+        // Try v/vt/vn
+        if (sscanf(token, "%d/%d/%d", &v[count], &vt[count], &vn[count]) != 3) {
+          // Try v//vn
+          if (sscanf(token, "%d//%d", &v[count], &vn[count]) != 2) {
+            // Try v/vt
+            if (sscanf(token, "%d/%d", &v[count], &vt[count]) != 2) {
+              // Try v
+              sscanf(token, "%d", &v[count]);
+            }
+          }
+        }
+        count++;
+        token = strtok(NULL, " \t\r\n");
+      }
+
+      // Triangulate (Fan triangulation: 0-1-2, 0-2-3)
+      for (int i = 0; i < count - 2; i++) {
+        if (fCount >= fCap) {
+          fCap *= 2;
+          temp_f = (Face *)realloc(temp_f, fCap * sizeof(Face));
+        }
+        // Triangle 1: 0, i+1, i+2
+        int idxs[3] = {0, i + 1, i + 2};
+        for (int k = 0; k < 3; k++) {
+          int idx = idxs[k];
+          temp_f[fCount].v[k] = (v[idx] > 0) ? v[idx] - 1 : 0;
+          temp_f[fCount].vt[k] = (vt[idx] > 0) ? vt[idx] - 1 : 0;
+          temp_f[fCount].vn[k] = (vn[idx] > 0) ? vn[idx] - 1 : 0;
+        }
+        fCount++;
+      }
     }
   }
+  fclose(file);
 
-  printf("Mesh_LoadModel: Loading %s. Combined %d meshes. Verts: %d, Indices: "
+  printf("Mesh_LoadModel: Loaded %s. Verts: %d, UVs: %d, Normals: %d, Faces: "
          "%d\n",
-         path, scene->mNumMeshes, numVertices, numIndices);
+         path, vCount, vtCount, vnCount, fCount);
 
-  // Vertex format: Pos(3), Normal(3), UV(2), Tangent(3) -> 11 floats
-  int stride = 11;
+  // Construct final mesh (Triangle Soup)
+  int numVertices = fCount * 3;
+  int numIndices = fCount * 3;
+  int stride = 11; // Pos(3), Normal(3), UV(2), Tangent(3)
+
   float *vertices = (float *)malloc(numVertices * stride * sizeof(float));
   unsigned int *indices =
       (unsigned int *)malloc(numIndices * sizeof(unsigned int));
 
-  int currentVertexOffset = 0;
-  int currentIndexOffset = 0;
+  for (int i = 0; i < fCount; i++) {
+    // Calculate Tangent for the triangle
+    float p1[3], p2[3], p3[3];
+    float uv1[2], uv2[2], uv3[2];
 
-  for (unsigned int m = 0; m < scene->mNumMeshes; m++) {
-    struct aiMesh *aMesh = scene->mMeshes[m];
+    // Get positions and UVs
+    int vIdx1 = temp_f[i].v[0];
+    int vIdx2 = temp_f[i].v[1];
+    int vIdx3 = temp_f[i].v[2];
 
-    for (unsigned int i = 0; i < aMesh->mNumVertices; i++) {
-      int vIdx = currentVertexOffset + i;
-      // Position
-      vertices[vIdx * stride + 0] = aMesh->mVertices[i].x;
-      vertices[vIdx * stride + 1] = aMesh->mVertices[i].y;
-      vertices[vIdx * stride + 2] = aMesh->mVertices[i].z;
+    p1[0] = temp_v[vIdx1 * 3];
+    p1[1] = temp_v[vIdx1 * 3 + 1];
+    p1[2] = temp_v[vIdx1 * 3 + 2];
+    p2[0] = temp_v[vIdx2 * 3];
+    p2[1] = temp_v[vIdx2 * 3 + 1];
+    p2[2] = temp_v[vIdx2 * 3 + 2];
+    p3[0] = temp_v[vIdx3 * 3];
+    p3[1] = temp_v[vIdx3 * 3 + 1];
+    p3[2] = temp_v[vIdx3 * 3 + 2];
+
+    int vtIdx1 = temp_f[i].vt[0];
+    int vtIdx2 = temp_f[i].vt[1];
+    int vtIdx3 = temp_f[i].vt[2];
+
+    if (vtCount > 0) {
+      uv1[0] = temp_vt[vtIdx1 * 2];
+      uv1[1] = 1.0f - temp_vt[vtIdx1 * 2 + 1];
+      uv2[0] = temp_vt[vtIdx2 * 2];
+      uv2[1] = 1.0f - temp_vt[vtIdx2 * 2 + 1];
+      uv3[0] = temp_vt[vtIdx3 * 2];
+      uv3[1] = 1.0f - temp_vt[vtIdx3 * 2 + 1];
+    } else {
+      uv1[0] = 0;
+      uv1[1] = 0;
+      uv2[0] = 0;
+      uv2[1] = 0;
+      uv3[0] = 0;
+      uv3[1] = 0;
+    }
+
+    // Tangent Calculation
+    float edge1[3], edge2[3];
+    edge1[0] = p2[0] - p1[0];
+    edge1[1] = p2[1] - p1[1];
+    edge1[2] = p2[2] - p1[2];
+    edge2[0] = p3[0] - p1[0];
+    edge2[1] = p3[1] - p1[1];
+    edge2[2] = p3[2] - p1[2];
+
+    float deltaUV1[2], deltaUV2[2];
+    deltaUV1[0] = uv2[0] - uv1[0];
+    deltaUV1[1] = uv2[1] - uv1[1];
+    deltaUV2[0] = uv3[0] - uv1[0];
+    deltaUV2[1] = uv3[1] - uv1[1];
+
+    float f = 1.0f / (deltaUV1[0] * deltaUV2[1] - deltaUV2[0] * deltaUV1[1]);
+    if (isinf(f) || isnan(f))
+      f = 1.0f; // Safety
+
+    float tangent[3];
+    tangent[0] = f * (deltaUV2[1] * edge1[0] - deltaUV1[1] * edge2[0]);
+    tangent[1] = f * (deltaUV2[1] * edge1[1] - deltaUV1[1] * edge2[1]);
+    tangent[2] = f * (deltaUV2[1] * edge1[2] - deltaUV1[1] * edge2[2]);
+
+    // Normalize tangent
+    float len = sqrtf(tangent[0] * tangent[0] + tangent[1] * tangent[1] +
+                      tangent[2] * tangent[2]);
+    if (len > 0.0001f) {
+      tangent[0] /= len;
+      tangent[1] /= len;
+      tangent[2] /= len;
+    } else {
+      tangent[0] = 1.0f;
+      tangent[1] = 0.0f;
+      tangent[2] = 0.0f;
+    }
+
+    for (int j = 0; j < 3; j++) {
+      int vIdx = i * 3 + j;
+      int vIndex = temp_f[i].v[j];
+      int vtIndex = temp_f[i].vt[j];
+      int vnIndex = temp_f[i].vn[j];
+
+      // Pos
+      vertices[vIdx * stride + 0] = temp_v[vIndex * 3];
+      vertices[vIdx * stride + 1] = temp_v[vIndex * 3 + 1];
+      vertices[vIdx * stride + 2] = temp_v[vIndex * 3 + 2];
 
       // Normal
-      if (aMesh->mNormals) {
-        vertices[vIdx * stride + 3] = aMesh->mNormals[i].x;
-        vertices[vIdx * stride + 4] = aMesh->mNormals[i].y;
-        vertices[vIdx * stride + 5] = aMesh->mNormals[i].z;
+      if (vnCount > 0) {
+        vertices[vIdx * stride + 3] = temp_vn[vnIndex * 3];
+        vertices[vIdx * stride + 4] = temp_vn[vnIndex * 3 + 1];
+        vertices[vIdx * stride + 5] = temp_vn[vnIndex * 3 + 2];
       } else {
         vertices[vIdx * stride + 3] = 0.0f;
         vertices[vIdx * stride + 4] = 1.0f;
@@ -317,35 +472,28 @@ Mesh Mesh_LoadModel(const char *path) {
       }
 
       // UV
-      if (aMesh->mTextureCoords[0]) {
-        vertices[vIdx * stride + 6] = aMesh->mTextureCoords[0][i].x;
-        vertices[vIdx * stride + 7] = aMesh->mTextureCoords[0][i].y;
+      if (vtCount > 0) {
+        vertices[vIdx * stride + 6] = temp_vt[vtIndex * 2];
+        vertices[vIdx * stride + 7] = 1.0f - temp_vt[vtIndex * 2 + 1]; // Flip V
       } else {
         vertices[vIdx * stride + 6] = 0.0f;
         vertices[vIdx * stride + 7] = 0.0f;
       }
 
       // Tangent
-      if (aMesh->mTangents) {
-        vertices[vIdx * stride + 8] = aMesh->mTangents[i].x;
-        vertices[vIdx * stride + 9] = aMesh->mTangents[i].y;
-        vertices[vIdx * stride + 10] = aMesh->mTangents[i].z;
-      } else {
-        vertices[vIdx * stride + 8] = 1.0f;
-        vertices[vIdx * stride + 9] = 0.0f;
-        vertices[vIdx * stride + 10] = 0.0f;
-      }
-    }
+      vertices[vIdx * stride + 8] = tangent[0];
+      vertices[vIdx * stride + 9] = tangent[1];
+      vertices[vIdx * stride + 10] = tangent[2];
 
-    // Indices
-    for (unsigned int f = 0; f < aMesh->mNumFaces; f++) {
-      struct aiFace face = aMesh->mFaces[f];
-      for (unsigned int j = 0; j < face.mNumIndices; j++) {
-        indices[currentIndexOffset++] = face.mIndices[j] + currentVertexOffset;
-      }
+      indices[vIdx] = vIdx;
     }
-    currentVertexOffset += aMesh->mNumVertices;
   }
+
+  // Cleanup temp arrays
+  free(temp_v);
+  free(temp_vt);
+  free(temp_vn);
+  free(temp_f);
 
   mesh.indexCount = numIndices;
 
@@ -379,7 +527,6 @@ Mesh Mesh_LoadModel(const char *path) {
 
   free(vertices);
   free(indices);
-  aiReleaseImport(scene);
 
   return mesh;
 }

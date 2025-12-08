@@ -1,0 +1,37 @@
+gcc -Wall -Wextra -std=c99 -D_GNU_SOURCE -Wno-deprecated-declarations -Isrc -I/opt/homebrew/include -I/opt/homebrew/Cellar/assimp/6.0.2/include -Ilibs/glfw/include src/main.c src/core/window.c src/core/input.c src/core/camera.c src/graphics/shader.c src/graphics/texture.c src/graphics/mesh.c src/graphics/water_fbo.c src/utils/math_utils.c src/utils/file_utils.c -o aincrad_floor -L/opt/homebrew/lib -L/opt/homebrew/Cellar/assimp/6.0.2/lib libs/glfw/build/src/libglfw3.a -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore -lm
+src/main.c:165:29: warning: unused parameter 'x' [-Wunused-parameter]
+  165 | float GetGroundHeight(float x, float z) {
+      |                             ^
+src/main.c:738:69: error: expected ')'
+  738 |           modelBridge = mat4_multiply(rotate_x(-90.0f), modelBridge); // Fix Z-up to Y-up // Fix Z-up to Y-up
+      |                                                                     ^
+src/main.c:736:34: note: to match this '('
+  736 |       modelBridge = mat4_multiply(
+      |                                  ^
+src/main.c:766:89: error: expected ')'
+  766 |                           modelHalfpipe = mat4_multiply(rotate_x(-90.0f), modelHalfpipe); // Fix Z-up to Y-up // Fix Z-up to Y-up
+      |                                                                                         ^
+src/main.c:764:26: note: to match this '('
+  764 |             mat4_multiply(scale(25 * HALFPIPE_SCALE, 0.6 * HALFPIPE_SCALE,
+      |                          ^
+1 warning and 2 errors generated.
+src/graphics/water_fbo.c:82:37: warning: unused parameter 'width' [-Wunused-parameter]
+   82 | WaterFrameBuffers WaterFBO_Init(int width, int height) {
+      |                                     ^
+src/graphics/water_fbo.c:82:48: warning: unused parameter 'height' [-Wunused-parameter]
+   82 | WaterFrameBuffers WaterFBO_Init(int width, int height) {
+      |                                                ^
+src/graphics/water_fbo.c:99:70: warning: unused parameter 'width' [-Wunused-parameter]
+   99 | void WaterFBO_BindReflectionFrameBuffer(WaterFrameBuffers *fbos, int width,
+      |                                                                      ^
+src/graphics/water_fbo.c:100:45: warning: unused parameter 'height' [-Wunused-parameter]
+  100 |                                         int height) {
+      |                                             ^
+src/graphics/water_fbo.c:106:70: warning: unused parameter 'width' [-Wunused-parameter]
+  106 | void WaterFBO_BindRefractionFrameBuffer(WaterFrameBuffers *fbos, int width,
+      |                                                                      ^
+src/graphics/water_fbo.c:107:45: warning: unused parameter 'height' [-Wunused-parameter]
+  107 |                                         int height) {
+      |                                             ^
+6 warnings generated.
+make: *** [aincrad_floor] Error 1

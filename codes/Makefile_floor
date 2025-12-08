@@ -33,40 +33,16 @@ endif
 # Common Libs
 COMMON_LIBS = -lm
 
-# Assimp Configuration (Local Static Build)
-ASSIMP_DIR = libs/assimp
-ASSIMP_BUILD_DIR = $(ASSIMP_DIR)/build
-ASSIMP_INCLUDE = -I$(ASSIMP_DIR)/include -I$(ASSIMP_BUILD_DIR)/include
-
-# Check for libassimp.a in various locations (lib or lib64)
-ifneq ($(wildcard $(ASSIMP_BUILD_DIR)/lib/libassimp.a),)
-    ASSIMP_LINK = $(ASSIMP_BUILD_DIR)/lib/libassimp.a
-else ifneq ($(wildcard $(ASSIMP_BUILD_DIR)/lib64/libassimp.a),)
-    ASSIMP_LINK = $(ASSIMP_BUILD_DIR)/lib64/libassimp.a
-endif
-
-ifneq ($(ASSIMP_LINK),)
-    # Use local static assimp if available
-    CFLAGS += $(ASSIMP_INCLUDE)
-else
-    # Fallback to system assimp (or homebrew)
-    ifneq ($(wildcard /opt/homebrew/include),)
-        CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/Cellar/assimp/6.0.2/include
-        LIBS_PATH += -L/opt/homebrew/lib -L/opt/homebrew/Cellar/assimp/6.0.2/lib
-    endif
-    ASSIMP_LINK = -lassimp
-endif
-
 ifeq ($(UNAME_S), Darwin)
 	# Mac OS
 	CFLAGS += $(GLFW_INCLUDE)
-	LIBS = $(LIBS_PATH) $(GLFW_LIB) -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore $(ASSIMP_LINK) $(COMMON_LIBS) -lz
+	LIBS = $(LIBS_PATH) $(GLFW_LIB) -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore $(COMMON_LIBS)
 else
 	# Linux / Other
 	CFLAGS += $(GLFW_INCLUDE)
 	# Link static GLFW and its dependencies (X11, etc.)
 	# Note: Makefile.linux puts libglfw3.a in libs/glfw/build/src
-	LIBS = -L$(GLFW_BUILD_DIR)/src -lglfw3 -lGL -lX11 -lm -ldl -lpthread $(ASSIMP_LINK) -lz
+	LIBS = -L$(GLFW_BUILD_DIR)/src -lglfw3 -lGL -lX11 -lm -ldl -lpthread
 endif
 
 all: $(GLFW_LIB) $(TARGET)
