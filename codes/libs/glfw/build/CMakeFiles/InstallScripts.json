@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/cattleya/project_scarletJadeCastle/codes/libs/glfw/build/cmake_install.cmake",
-		"/Users/cattleya/project_scarletJadeCastle/codes/libs/glfw/build/src/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

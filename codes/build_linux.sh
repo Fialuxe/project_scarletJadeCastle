@@ -7,7 +7,7 @@ echo "========================================"
 
 # 1. Clean previous builds
 echo "[1/2] Cleaning previous builds..."
-make -f Makefile_floor clean
+make -f Makefile_floor clean_all
 
 # 2. Build the Project
 echo "[2/2] Building Aincrad Floor..."
